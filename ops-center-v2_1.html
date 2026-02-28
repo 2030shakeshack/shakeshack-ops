@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ops Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080810;
+  --s1: #0f0f1a;
+  --s2: #161625;
+  --s3: #1e1e30;
+  --border: #252538;
+  --border2: #2f2f48;
+  --accent: #ff4500;
+  --accent-glow: rgba(255,69,0,0.15);
+  --yellow: #f5c842;
+  --green: #00d68f;
+  --purple: #8b6fff;
+  --pink: #ff4d88;
+  --blue: #4d9fff;
+  --text: #eeeef5;
+  --muted: #6b6b8a;
+  --muted2: #4a4a65;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Cabinet Grotesk',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* Ambient BG */
+body::before{content:'';position:fixed;top:-300px;right:-300px;width:700px;height:700px;background:radial-gradient(circle,rgba(255,69,0,0.04) 0%,transparent 65%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;bottom:-200px;left:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(139,111,255,0.03) 0%,transparent 65%);pointer-events:none;z-index:0}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--s1);border-right:1px solid var(--border);z-index:100;display:flex;flex-direction:column;padding:24px 0}
+.logo{padding:0 20px 24px;border-bottom:1px solid var(--border)}
+.logo-text{font-family:'Clash Display',sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.5px}
+.logo-text span{color:var(--accent)}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}
+
+.nav{padding:16px 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;margin-bottom:2px;font-size:13px;color:var(--muted);font-weight:500}
+.nav-item:hover{background:var(--s2);color:var(--text)}
+.nav-item.active{background:rgba(255,69,0,0.1);color:var(--accent);border:1px solid rgba(255,69,0,0.2)}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;font-family:'Clash Display',sans-serif}
+.nav-badge.yellow{background:var(--yellow);color:#000}
+.nav-badge.pink{background:var(--pink)}
+
+.sidebar-bottom{padding:16px 20px;border-top:1px solid var(--border)}
+.active-timer-mini{display:none;background:rgba(0,214,143,0.1);border:1px solid rgba(0,214,143,0.2);border-radius:8px;padding:10px 12px}
+.active-timer-mini.visible{display:block}
+.atm-label{font-size:9px;color:var(--green);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.atm-label::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
+.atm-task{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.atm-time{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:700;color:var(--green)}
+
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.4)}}
+
+/* ── MAIN ── */
+.main{margin-left:220px;min-height:100vh;position:relative;z-index:1}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--s1);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.page-title{font-family:'Clash Display',sans-serif;font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.brand-filter{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;color:var(--text);cursor:pointer;outline:none}
+.brand-filter:focus{border-color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.date-badge{font-size:11px;color:var(--muted);letter-spacing:0.5px}
+.sheet-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;transition:all 0.15s}
+.sheet-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── PAGES ── */
+.page{display:none;padding:24px 28px}
+.page.active{display:block}
+
+/* ── STATS STRIP ── */
+.stats-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.stat{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s}
+.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c)}
+.stat:hover{border-color:var(--c);transform:translateY(-2px)}
+.stat.active-tab{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,var(--s1))}
+.stat-n{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.stat-v{font-family:'Clash Display',sans-serif;font-size:30px;font-weight:700;color:var(--c);line-height:1}
+
+/* ── TASK TABS ── */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:4px}
+.tab{flex:1;padding:9px 14px;border-radius:7px;border:none;background:transparent;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:0.3px}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--s3);color:var(--text)}
+.tab.active.overdue-tab{color:var(--accent);background:rgba(255,69,0,0.08)}
+.tab.active.warning-tab{color:var(--yellow);background:rgba(245,200,66,0.08)}
+.tab.active.wip-tab{color:var(--purple);background:rgba(139,111,255,0.08)}
+.tab.active.stuck-tab{color:var(--pink);background:rgba(255,77,136,0.08)}
+.tab.active.done-tab{color:var(--green);background:rgba(0,214,143,0.08)}
+.tab-count{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--s2)}
+.overdue-tab .tab-count{background:rgba(255,69,0,0.15);color:var(--accent)}
+.tab.active.overdue-tab .tab-count{background:rgba(255,69,0,0.2)}
+.warning-tab .tab-count{background:rgba(245,200,66,0.12);color:var(--yellow)}
+.stuck-tab .tab-count{background:rgba(255,77,136,0.12);color:var(--pink)}
+.done-tab .tab-count{background:rgba(0,214,143,0.1);color:var(--green)}
+.wip-tab .tab-count{background:rgba(139,111,255,0.1);color:var(--purple)}
+
+/* ── TASK CARDS ── */
+.tasks-container{display:flex;flex-direction:column;gap:6px}
+.task-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:0;overflow:hidden;transition:all 0.15s;animation:slideIn 0.25s ease forwards;opacity:0}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.task-card:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.task-card.expanded{border-color:var(--border2)}
+.task-card.running{border-color:rgba(0,214,143,0.4);box-shadow:0 0 0 1px rgba(0,214,143,0.1)}
+
+.task-main{display:grid;grid-template-columns:36px 72px 80px 1fr 110px 90px 110px 44px;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+.task-main:hover .task-name-text{color:var(--accent)}
+
+.priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin:auto}
+.p0-dot{background:var(--accent);box-shadow:0 0 6px rgba(255,69,0,0.5)}
+.p1-dot{background:var(--yellow)}
+.p2-dot{background:var(--green)}
+
+.brand-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;text-align:center;background:var(--s3);color:var(--muted);letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.priority-tag{font-size:9px;font-weight:800;padding:3px 8px;border-radius:5px;text-align:center;letter-spacing:0.5px}
+.p0-tag{background:rgba(255,69,0,0.12);color:var(--accent)}
+.p1-tag{background:rgba(245,200,66,0.1);color:var(--yellow)}
+.p2-tag{background:rgba(0,214,143,0.08);color:var(--green)}
+
+.task-name-text{font-size:13px;font-weight:500;line-height:1.35;transition:color 0.15s}
+
+.deadline-cell{font-size:11px;font-weight:600}
+.dl-overdue{color:var(--accent)}
+.dl-warning{color:var(--yellow)}
+.dl-ok{color:var(--muted)}
+.dl-none{color:var(--muted2)}
+.dl-days{font-size:9px;font-weight:400;margin-top:1px}
+
+.status-pill{font-size:9px;font-weight:700;padding:4px 9px;border-radius:5px;border:1px solid;white-space:nowrap;letter-spacing:0.3px;text-align:center}
+.s-wip{border-color:var(--purple);color:var(--purple);background:rgba(139,111,255,0.07)}
+.s-tbi{border-color:var(--muted2);color:var(--muted);background:transparent}
+.s-stuck{border-color:var(--pink);color:var(--pink);background:rgba(255,77,136,0.07)}
+.s-review{border-color:var(--yellow);color:var(--yellow);background:rgba(245,200,66,0.07)}
+.s-done{border-color:var(--green);color:var(--green);background:rgba(0,214,143,0.07)}
+.s-delayed{border-color:var(--pink);color:var(--pink);background:rgba(255,77,136,0.07)}
+
+/* Timer button */
+.timer-btn{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.15s;flex-shrink:0}
+.timer-btn:hover{border-color:var(--green);background:rgba(0,214,143,0.1)}
+.timer-btn.running{border-color:var(--green);background:rgba(0,214,143,0.12);animation:timerPulse 2s infinite}
+@keyframes timerPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,214,143,0.3)}50%{box-shadow:0 0 0 4px rgba(0,214,143,0)}}
+
+/* Expand panel */
+.task-expand{display:none;border-top:1px solid var(--border);padding:16px 16px 16px;background:var(--s2)}
+.task-card.expanded .task-expand{display:block}
+
+.expand-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.expand-section label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+
+.time-log-box{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px}
+.time-total{font-family:'Clash Display',sans-serif;font-size:22px;font-weight:700;color:var(--green);margin-bottom:4px}
+.time-sessions{font-size:10px;color:var(--muted)}
+
+.status-select{background:var(--s1);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;color:var(--text);cursor:pointer;outline:none;width:100%}
+.status-select:focus{border-color:var(--accent)}
+
+.updates-textarea{background:var(--s1);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;color:var(--text);resize:none;width:100%;outline:none;height:70px;line-height:1.5}
+.updates-textarea:focus{border-color:var(--accent)}
+.updates-textarea::placeholder{color:var(--muted2)}
+
+.save-btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px 18px;font-family:'Cabinet Grotesk',sans-serif;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.15s;margin-top:10px}
+.save-btn:hover{background:#ff6620}
+
+.session-log{margin-top:8px}
+.session-entry{font-size:10px;color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.session-entry:last-child{border:none}
+
+/* ── ANALYTICS PAGE ── */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.analytics-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px}
+.analytics-card.full{grid-column:1/-1}
+.ac-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-weight:600}
+
+.bar-chart{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:80px 1fr 50px;align-items:center;gap:10px}
+.bar-label{font-size:11px;color:var(--muted);text-align:right}
+.bar-track{background:var(--s2);border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1)}
+.bar-val{font-size:11px;font-weight:700;color:var(--text)}
+
+.donut-wrap{display:flex;align-items:center;gap:24px}
+.donut-svg{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-val{margin-left:auto;font-weight:700;font-size:12px;padding-left:16px}
+
+.time-leaderboard{display:flex;flex-direction:column;gap:6px}
+.tl-row{display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--s2);border-radius:7px}
+.tl-rank{font-family:'Clash Display',sans-serif;font-size:14px;font-weight:700;color:var(--muted2);width:20px}
+.tl-task{font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-time{font-size:11px;font-weight:700;color:var(--green);white-space:nowrap}
+
+.velocity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.velocity-card{background:var(--s2);border-radius:8px;padding:14px;text-align:center}
+.velocity-num{font-family:'Clash Display',sans-serif;font-size:24px;font-weight:700;margin-bottom:4px}
+.velocity-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+
+/* ── SHEET CONNECT ── */
+.sheet-panel{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.sheet-panel label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px}
+.sheet-input-row{display:flex;gap:10px}
+.sheet-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:12px;outline:none}
+.sheet-input:focus{border-color:var(--accent)}
+.sheet-input::placeholder{color:var(--muted2)}
+.btn-load{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.15s;white-space:nowrap}
+.btn-load:hover{background:#ff6620}
+.btn-demo{background:transparent;border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;color:var(--muted);cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn-demo:hover{border-color:var(--purple);color:var(--purple)}
+.sheet-hint{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.7}
+
+/* ── FOCUS CARD ── */
+.focus-banner{background:linear-gradient(135deg,rgba(255,69,0,0.07),rgba(255,69,0,0.02));border:1px solid rgba(255,69,0,0.2);border-radius:12px;padding:18px 22px;margin-bottom:20px;display:none}
+.focus-banner.visible{display:flex;align-items:center;gap:20px}
+.focus-pulse{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.4s infinite;flex-shrink:0}
+.focus-content{flex:1}
+.focus-eyebrow{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.focus-title{font-family:'Clash Display',sans-serif;font-size:17px;font-weight:600;margin-bottom:4px;line-height:1.2}
+.focus-meta{display:flex;gap:16px;font-size:11px;color:var(--muted)}
+.focus-start-btn{background:rgba(255,69,0,0.12);border:1px solid rgba(255,69,0,0.3);border-radius:8px;padding:9px 16px;font-family:'Cabinet Grotesk',sans-serif;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.focus-start-btn:hover{background:rgba(255,69,0,0.2)}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:0.4}
+.empty-text{font-size:13px}
+
+/* Notification toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s3);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:12px;font-weight:500;z-index:999;transform:translateY(80px);opacity:0;transition:all 0.3s;max-width:280px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(0,214,143,0.3);color:var(--green)}
+.toast.info{border-color:rgba(139,111,255,0.3);color:var(--purple)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:12px}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:rgba(255,69,0,0.06);border:1px solid rgba(255,69,0,0.2);border-radius:8px;padding:12px 16px;font-size:11px;color:var(--accent);margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-text">OPS <span>CENTER</span></div>
+    <div class="logo-sub">Task Intelligence</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showPage('dashboard',this)">
+      <span class="nav-icon">⬡</span> Dashboard
+      <span class="nav-badge" id="nb-overdue">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('tasks',this)">
+      <span class="nav-icon">◈</span> All Tasks
+    </div>
+    <div class="nav-item" onclick="showPage('analytics',this)">
+      <span class="nav-icon">◎</span> Analytics
+    </div>
+    <div class="nav-item" onclick="showPage('connect',this)">
+      <span class="nav-icon">⊕</span> Connect Sheet
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="active-timer-mini" id="sidebarTimer">
+      <div class="atm-label">Timer Running</div>
+      <div class="atm-task" id="atm-task">—</div>
+      <div class="atm-time" id="atm-time">00:00:00</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <select class="brand-filter" id="brandFilter" onchange="applyFilters()">
+        <option value="all">All Brands</option>
+      </select>
+    </div>
+    <div class="topbar-right">
+      <div class="date-badge" id="dateDisplay"></div>
+      <button class="sheet-btn" onclick="showPage('connect',document.querySelector('.nav-item:nth-child(4)'))">⊕ Connect Sheet</button>
+    </div>
+  </div>
+
+  <!-- ══ DASHBOARD PAGE ══ -->
+  <div class="page active" id="page-dashboard">
+
+    <!-- Stats -->
+    <div class="stats-strip">
+      <div class="stat" style="--c:var(--accent)" onclick="switchTaskTab('overdue')" id="stat-overdue">
+        <div class="stat-n">Overdue</div>
+        <div class="stat-v" id="sv-overdue">0</div>
+      </div>
+      <div class="stat" style="--c:var(--yellow)" onclick="switchTaskTab('warning')">
+        <div class="stat-n">Due Soon</div>
+        <div class="stat-v" id="sv-warning">0</div>
+      </div>
+      <div class="stat" style="--c:var(--pink)" onclick="switchTaskTab('stuck')">
+        <div class="stat-n">Stuck</div>
+        <div class="stat-v" id="sv-stuck">0</div>
+      </div>
+      <div class="stat" style="--c:var(--green)" onclick="switchTaskTab('done')">
+        <div class="stat-n">Done</div>
+        <div class="stat-v" id="sv-done">0</div>
+      </div>
+      <div class="stat" style="--c:var(--muted)">
+        <div class="stat-n">Total Tasks</div>
+        <div class="stat-v" id="sv-total">0</div>
+      </div>
+    </div>
+
+    <!-- Focus Banner -->
+    <div class="focus-banner" id="focusBanner">
+      <div class="focus-pulse"></div>
+      <div class="focus-content">
+        <div class="focus-eyebrow">▲ NEXT UP — HIGHEST PRIORITY</div>
+        <div class="focus-title" id="focus-title">—</div>
+        <div class="focus-meta">
+          <span id="focus-brand">—</span>
+          <span id="focus-deadline">—</span>
+          <span id="focus-status">—</span>
+        </div>
+      </div>
+      <button class="focus-start-btn" id="focus-timer-btn" onclick="startFocusTimer()">▶ Start Timer</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="taskTabs">
+      <button class="tab overdue-tab active" onclick="switchTaskTab('overdue',this)">
+        🔴 Overdue <span class="tab-count" id="tc-overdue">0</span>
+      </button>
+      <button class="tab warning-tab" onclick="switchTaskTab('warning',this)">
+        🟡 Due Soon <span class="tab-count" id="tc-warning">0</span>
+      </button>
+      <button class="tab wip-tab" onclick="switchTaskTab('wip',this)">
+        ◈ In Progress <span class="tab-count" id="tc-wip">0</span>
+      </button>
+      <button class="tab stuck-tab" onclick="switchTaskTab('stuck',this)">
+        ⚠ Stuck <span class="tab-count" id="tc-stuck">0</span>
+      </button>
+      <button class="tab done-tab" onclick="switchTaskTab('done',this)">
+        ✓ Done <span class="tab-count" id="tc-done">0</span>
+      </button>
+    </div>
+
+    <div class="tasks-container" id="dashTaskList">
+      <div class="empty"><div class="empty-icon">⬡</div><div class="empty-text">Connect your Google Sheet to load tasks</div></div>
+    </div>
+  </div>
+
+  <!-- ══ ALL TASKS PAGE ══ -->
+  <div class="page" id="page-tasks">
+    <div class="tasks-container" id="allTaskList">
+      <div class="empty"><div class="empty-icon">◈</div><div class="empty-text">No tasks loaded</div></div>
+    </div>
+  </div>
+
+  <!-- ══ ANALYTICS PAGE ══ -->
+  <div class="page" id="page-analytics">
+    <div class="analytics-grid">
+
+      <div class="analytics-card">
+        <div class="ac-title">Tasks by Status</div>
+        <div class="donut-wrap">
+          <svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100" id="donutSvg">
+            <circle cx="50" cy="50" r="35" fill="none" stroke="var(--s2)" stroke-width="18"/>
+          </svg>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="ac-title">Tasks by Brand</div>
+        <div class="bar-chart" id="brandBarChart"></div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="ac-title">Priority Breakdown</div>
+        <div class="velocity-grid" id="priorityVelocity"></div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="ac-title">Time Tracked This Session</div>
+        <div class="velocity-grid" id="timeVelocity"></div>
+      </div>
+
+      <div class="analytics-card full">
+        <div class="ac-title">Top Tasks by Time Logged</div>
+        <div class="time-leaderboard" id="timeLeaderboard"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ CONNECT PAGE ══ -->
+  <div class="page" id="page-connect">
+    <div class="sheet-panel">
+      <label>Google Sheet URL or Published CSV URL</label>
+      <div class="sheet-input-row">
+        <input class="sheet-input" type="text" id="sheetInput" placeholder="Paste Google Sheet URL or published CSV URL..."/>
+        <button class="btn-load" onclick="loadSheet()">LOAD TASKS</button>
+        <button class="btn-demo" onclick="loadDemo()">USE DEMO</button>
+      </div>
+      <div class="sheet-hint">
+        💡 To connect your live sheet: Open Google Sheet → <strong>File → Share → Publish to web</strong> → Select sheet tab → Format: <strong>CSV</strong> → Publish → Paste that URL here.<br>
+        Sheet columns: <strong>Assignee | Project/Brand | Priority | Status | Task | Planned Closure | Updates</strong>
+      </div>
+    </div>
+    <div id="connectStatus"></div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let allTasks = [];
+let currentTab = 'overdue';
+let currentBrand = 'all';
+let timerState = { taskIdx: null, running: false, elapsed: 0, intervalId: null, startedAt: null };
+let timeLogs = {}; // { taskIdx: { total: seconds, sessions: [{start,end,duration}] } }
+let statusOverrides = {}; // { taskIdx: newStatus }
+let updatesOverrides = {}; // { taskIdx: text }
+let focusTaskIdx = null;
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+loadDemo();
+
+// ═══════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles = {dashboard:'Dashboard',tasks:'All Tasks',analytics:'Analytics',connect:'Connect Sheet'};
+  document.getElementById('pageTitle').textContent = titles[name]||name;
+  if(name==='analytics') renderAnalytics();
+  if(name==='tasks') renderAllTasks();
+}
+
+// ═══════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════
+function extractSheetId(input){
+  input=input.trim();
+  const m=input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if(m) return m[1];
+  if(/^[a-zA-Z0-9-_]{30,}$/.test(input)) return input;
+  return null;
+}
+
+async function loadSheet(){
+  const input=document.getElementById('sheetInput').value.trim();
+  if(!input){showToast('Paste a URL first','info');return;}
+
+  document.getElementById('connectStatus').innerHTML='<div class="loading"><div class="spin"></div><br>Loading...</div>';
+
+  const proxies = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://cors-anywhere.herokuapp.com/${url}`,
+  ];
+
+  // Build target URL
+  let targetUrl = input;
+  if(!input.includes('output=csv') && !input.includes('/pub')){
+    const id = extractSheetId(input);
+    if(!id){document.getElementById('connectStatus').innerHTML='<div class="error-msg">⚠ Could not find a valid Sheet ID</div>';return;}
+    targetUrl = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
+  }
+
+  // Try direct first, then proxies
+  const urlsToTry = [targetUrl, ...proxies.map(p=>p(targetUrl))];
+  let loaded = false;
+
+  for(const url of urlsToTry){
+    try{
+      const r = await fetch(url);
+      if(!r.ok) continue;
+      const t = await r.text();
+      if(t.includes('<html') || t.length < 20) continue;
+      const tasks = parseCSV(t);
+      if(tasks.length === 0) continue;
+      finishLoad(tasks);
+      loaded = true;
+      break;
+    }catch(e){ continue; }
+  }
+
+  if(!loaded){
+    document.getElementById('connectStatus').innerHTML=`<div class="error-msg">⚠ Could not load sheet.<br><br>
+    Try opening the dashboard from a web server, or use the <strong>Import CSV</strong> option below to upload your sheet directly.</div>
+    <div style="margin-top:16px">
+      <label style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">OR UPLOAD CSV FILE DIRECTLY</label>
+      <input type="file" accept=".csv" onchange="loadCSVFile(event)" style="font-size:12px;color:var(--muted);background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;width:100%;cursor:pointer"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">In Google Sheets: File → Download → CSV → upload that file here</div>
+    </div>`;
+  }
+}
+
+function loadCSVFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const tasks = parseCSV(e.target.result);
+    if(tasks.length === 0){
+      document.getElementById('connectStatus').innerHTML='<div class="error-msg">⚠ No tasks found in this CSV file</div>';
+      return;
+    }
+    finishLoad(tasks);
+  };
+  reader.readAsText(file);
+}
+
+function finishLoad(tasks){
+  allTasks=tasks;
+  document.getElementById('connectStatus').innerHTML=`<div style="color:var(--green);font-size:12px;padding:10px 0">✓ ${tasks.length} tasks loaded successfully</div>`;
+  showToast(`${tasks.length} tasks loaded ✓`,'success');
+  populateBrandFilter();
+  renderDashboard();
+  showPage('dashboard',document.querySelector('.nav-item'));
+}
+
+function loadDemo(){
+  allTasks=[
+    {assignee:'Abhishek',project:'TMC',priority:'P0',status:'WIP',task:'Loyalty Program Integration Start',deadline:'19/02/2026',updates:'Mohit needs to approve the pricing'},
+    {assignee:'Abhishek',project:'TMC',priority:'P0',status:'To Be Initiated',task:'Bundle Listing: Focus on whats inside — Perfume + Skincare',deadline:'22/02/2026',updates:''},
+    {assignee:'Abhishek',project:'TMC',priority:'P0',status:'Stuck Need Help',task:'GK Cart Milestone — Free Gifting Threshold',deadline:'19/02/2026',updates:''},
+    {assignee:'Abhishek, Praveen',project:'TMC',priority:'P0',status:'WIP',task:'Popup on bundle/product after Buy Now or Add to Cart',deadline:'18/02/2026',updates:''},
+    {assignee:'Abhishek, Praveen',project:'TMC',priority:'P0',status:'To Be Initiated',task:'Bottom Sticky ATC Implementation',deadline:'19/02/2026',updates:''},
+    {assignee:'Abhishek, HKapoor',project:'TMC',priority:'P1',status:'To Be Initiated',task:'Collection Page Filter and Sort',deadline:'23/02/2026',updates:'Need Wizzy collection template'},
+    {assignee:'Abhishek',project:'TMC',priority:'P1',status:'Client Delayed',task:'BYRB Get it Live',deadline:'',updates:'Sunscreen is out of stock'},
+    {assignee:'Abhishek',project:'TMC',priority:'P1',status:'To Be Initiated',task:'New Virtual Combo Introduction — Landing Page + Homepage + CRM',deadline:'',updates:''},
+    {assignee:'Abhishek, HKapoor',project:'TMC',priority:'P2',status:'Review',task:'Clarity Custom Data Layer for Custom Events',deadline:'13/01/2026',updates:'Need to review with Hardik'},
+    {assignee:'Abhishek, Alok',project:'TMC',priority:'P2',status:'To Be Initiated',task:'Product Catalog Cleaning — Title Fix',deadline:'18/02/2026',updates:''},
+    {assignee:'Abhishek',project:'TMC',priority:'P2',status:'To Be Initiated',task:'CRM Check — Connect with Brand SPOC',deadline:'19/02/2026',updates:''},
+    {assignee:'Abhishek',project:'Neulife',priority:'P0',status:'WIP',task:'Homepage Hero Section A/B Test Setup',deadline:'25/02/2026',updates:'Variant B ready for review'},
+    {assignee:'Abhishek',project:'Neulife',priority:'P1',status:'Done',task:'PDP Trust Badge Implementation',deadline:'15/02/2026',updates:'Live and tracking'},
+    {assignee:'Abhishek',project:'Selfmade',priority:'P1',status:'Review',task:'Checkout CRO Audit Q1',deadline:'28/02/2026',updates:'Deck drafted'},
+    {assignee:'Abhishek',project:'Selfmade',priority:'P2',status:'Done',task:'WhatsApp CRM ROAS Dashboard',deadline:'10/02/2026',updates:'Shared with client'},
+  ];
+  populateBrandFilter();
+  renderDashboard();
+  showToast('Demo data loaded','info');
+}
+
+// ═══════════════════════════════════
+// CSV PARSE
+// ═══════════════════════════════════
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  if(lines.length<2) return [];
+  let headerIdx=0;
+  for(let i=0;i<Math.min(5,lines.length);i++){
+    const r=parseCSVLine(lines[i]);
+    if(r.some(c=>/assignee|tech it|ninja/i.test(c))){headerIdx=i;break;}
+  }
+  const tasks=[];
+  for(let i=headerIdx+1;i<lines.length;i++){
+    const r=parseCSVLine(lines[i]);
+    if(r.every(c=>!c.trim())) continue;
+    const task=r[4]||'';
+    if(!task.trim()) continue;
+    tasks.push({assignee:r[0]||'',project:r[1]||'',priority:r[2]||'',status:r[3]||'',task,deadline:r[5]||'',updates:r[6]||''});
+  }
+  return tasks;
+}
+function parseCSVLine(line){
+  const res=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){res.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  res.push(cur.trim());return res;
+}
+
+// ═══════════════════════════════════
+// DATE UTILS
+// ═══════════════════════════════════
+function parseDate(s){
+  if(!s||!s.trim()) return null;
+  s=s.trim();
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  const d=new Date(s);
+  return isNaN(d)?null:d;
+}
+function deadlineStatus(s){
+  const d=parseDate(s);
+  if(!d) return 'none';
+  const today=new Date();today.setHours(0,0,0,0);
+  const t=new Date(d);t.setHours(0,0,0,0);
+  const diff=(t-today)/(86400000);
+  if(diff<0) return 'overdue';
+  if(diff<=3) return 'warning';
+  return 'ok';
+}
+function daysOverdue(s){
+  const d=parseDate(s);
+  if(!d) return 0;
+  const today=new Date();today.setHours(0,0,0,0);
+  const t=new Date(d);t.setHours(0,0,0,0);
+  return Math.round((today-t)/86400000);
+}
+function daysUntil(s){
+  const d=parseDate(s);
+  if(!d) return 999;
+  const today=new Date();today.setHours(0,0,0,0);
+  const t=new Date(d);t.setHours(0,0,0,0);
+  return Math.round((t-today)/86400000);
+}
+
+// ═══════════════════════════════════
+// STATUS UTILS
+// ═══════════════════════════════════
+function getStatus(idx){ return statusOverrides[idx]||allTasks[idx].status; }
+function isStuck(idx){ const s=getStatus(idx).toLowerCase(); return s.includes('stuck')||s.includes('need help'); }
+function isWIP(idx){ const s=getStatus(idx).toLowerCase(); return s.includes('wip')||s.includes('progress'); }
+function isDone(idx){ const s=getStatus(idx).toLowerCase(); return s.includes('done')||s.includes('complete'); }
+function statusClass(s){
+  s=s.toLowerCase();
+  if(s.includes('wip')||s.includes('progress')) return 's-wip';
+  if(s.includes('stuck')||s.includes('need help')) return 's-stuck';
+  if(s.includes('review')) return 's-review';
+  if(s.includes('done')||s.includes('complete')) return 's-done';
+  if(s.includes('delayed')) return 's-delayed';
+  return 's-tbi';
+}
+function priorityClass(p){
+  p=(p||'').toUpperCase();
+  if(p.includes('P0')) return 'p0';
+  if(p.includes('P1')) return 'p1';
+  return 'p2';
+}
+
+// ═══════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════
+function applyFilters(){
+  currentBrand=document.getElementById('brandFilter').value;
+  renderDashboard();
+}
+function filteredTasks(){
+  if(currentBrand==='all') return allTasks.map((_,i)=>i);
+  return allTasks.map((_,i)=>i).filter(i=>allTasks[i].project===currentBrand);
+}
+function populateBrandFilter(){
+  const brands=[...new Set(allTasks.map(t=>t.project).filter(Boolean))];
+  const sel=document.getElementById('brandFilter');
+  sel.innerHTML='<option value="all">All Brands</option>';
+  brands.forEach(b=>{
+    const o=document.createElement('option');
+    o.value=b;o.textContent=b;sel.appendChild(o);
+  });
+}
+
+// ═══════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════
+function renderDashboard(){
+  const idxs=filteredTasks();
+  const overdue=idxs.filter(i=>deadlineStatus(allTasks[i].deadline)==='overdue'&&!isDone(i));
+  const warning=idxs.filter(i=>deadlineStatus(allTasks[i].deadline)==='warning'&&!isDone(i));
+  const stuck=idxs.filter(i=>isStuck(i));
+  const wip=idxs.filter(i=>isWIP(i));
+  const done=idxs.filter(i=>isDone(i));
+
+  // Sort overdue: most delayed first
+  overdue.sort((a,b)=>daysOverdue(allTasks[b].deadline)-daysOverdue(allTasks[a].deadline));
+  // Sort warning: closest deadline first
+  warning.sort((a,b)=>daysUntil(allTasks[a].deadline)-daysUntil(allTasks[b].deadline));
+
+  // Stats
+  document.getElementById('sv-overdue').textContent=overdue.length;
+  document.getElementById('sv-warning').textContent=warning.length;
+  document.getElementById('sv-stuck').textContent=stuck.length;
+  document.getElementById('sv-done').textContent=done.length;
+  document.getElementById('sv-total').textContent=idxs.length;
+  document.getElementById('tc-overdue').textContent=overdue.length;
+  document.getElementById('tc-warning').textContent=warning.length;
+  document.getElementById('tc-wip').textContent=wip.length;
+  document.getElementById('tc-stuck').textContent=stuck.length;
+  document.getElementById('tc-done').textContent=done.length;
+  document.getElementById('nb-overdue').textContent=overdue.length;
+
+  // Focus banner: top P0 non-done task
+  const p0tasks=idxs.filter(i=>{
+    const p=(allTasks[i].priority||'').toUpperCase();
+    return p.includes('P0')&&!isDone(i);
+  }).sort((a,b)=>daysOverdue(allTasks[b].deadline)-daysOverdue(allTasks[a].deadline));
+
+  if(p0tasks.length>0){
+    focusTaskIdx=p0tasks[0];
+    const t=allTasks[focusTaskIdx];
+    document.getElementById('focus-title').textContent=t.task;
+    document.getElementById('focus-brand').textContent='📁 '+t.project;
+    const ds=deadlineStatus(t.deadline);
+    document.getElementById('focus-deadline').textContent=t.deadline?(ds==='overdue'?'🔴 OVERDUE: ':ds==='warning'?'🟡 ':'')+t.deadline:'No deadline';
+    document.getElementById('focus-status').textContent='● '+getStatus(focusTaskIdx);
+    document.getElementById('focusBanner').classList.add('visible');
+    updateFocusTimerBtn();
+  } else {
+    document.getElementById('focusBanner').classList.remove('visible');
+  }
+
+  renderTabContent(currentTab,{overdue,warning,wip,stuck,done});
+}
+
+function renderTabContent(tab,groups){
+  currentTab=tab;
+  const tabEls=document.querySelectorAll('.tab');
+  tabEls.forEach(t=>t.classList.remove('active'));
+  const tabMap={overdue:0,warning:1,wip:2,stuck:3,done:4};
+  if(tabMap[tab]!==undefined) tabEls[tabMap[tab]].classList.add('active');
+
+  let tasks=groups[tab]||[];
+  const container=document.getElementById('dashTaskList');
+  if(tasks.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">${tab==='done'?'✓':'◎'}</div><div class="empty-text">No ${tab} tasks${currentBrand!=='all'?' for '+currentBrand:''}</div></div>`;
+    return;
+  }
+  container.innerHTML=tasks.map((idx,i)=>taskCardHTML(idx,i)).join('');
+}
+
+function switchTaskTab(tab,el){
+  currentTab=tab;
+  const idxs=filteredTasks();
+  const overdue=idxs.filter(i=>deadlineStatus(allTasks[i].deadline)==='overdue'&&!isDone(i)).sort((a,b)=>daysOverdue(allTasks[b].deadline)-daysOverdue(allTasks[a].deadline));
+  const warning=idxs.filter(i=>deadlineStatus(allTasks[i].deadline)==='warning'&&!isDone(i)).sort((a,b)=>daysUntil(allTasks[a].deadline)-daysUntil(allTasks[b].deadline));
+  const stuck=idxs.filter(i=>isStuck(i));
+  const wip=idxs.filter(i=>isWIP(i));
+  const done=idxs.filter(i=>isDone(i));
+  renderTabContent(tab,{overdue,warning,wip,stuck,done});
+  if(el){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+  }
+}
+
+function renderAllTasks(){
+  const idxs=filteredTasks();
+  const sorted=[...idxs].sort((a,b)=>{
+    const po={P0:0,P1:1,P2:2};
+    const pa=po[allTasks[a].priority]??3;
+    const pb=po[allTasks[b].priority]??3;
+    if(pa!==pb) return pa-pb;
+    return daysOverdue(allTasks[b].deadline)-daysOverdue(allTasks[a].deadline);
+  });
+  const c=document.getElementById('allTaskList');
+  if(sorted.length===0){c.innerHTML='<div class="empty"><div class="empty-icon">◈</div><div class="empty-text">No tasks</div></div>';return;}
+  c.innerHTML=sorted.map((idx,i)=>taskCardHTML(idx,i)).join('');
+}
+
+// ═══════════════════════════════════
+// TASK CARD HTML
+// ═══════════════════════════════════
+function taskCardHTML(idx,animIdx){
+  const t=allTasks[idx];
+  const status=getStatus(idx);
+  const updates=updatesOverrides[idx]!==undefined?updatesOverrides[idx]:t.updates;
+  const pc=priorityClass(t.priority);
+  const ds=deadlineStatus(t.deadline);
+  const dClass=ds==='overdue'?'dl-overdue':ds==='warning'?'dl-warning':t.deadline?'dl-ok':'dl-none';
+  let dLabel=t.deadline||'—';
+  let dSub='';
+  if(ds==='overdue'){const d=daysOverdue(t.deadline);dSub=`<div class="dl-days">${d}d overdue</div>`;}
+  else if(ds==='warning'){const d=daysUntil(t.deadline);dSub=`<div class="dl-days">${d}d left</div>`;}
+
+  const tl=timeLogs[idx];
+  const totalSecs=tl?tl.total:0;
+  const sessions=tl?tl.sessions.length:0;
+  const isRunning=timerState.running&&timerState.taskIdx===idx;
+  const isExpanded=false; // default closed
+
+  const rowCard=`task-card${isRunning?' running':''}`;
+
+  return `<div class="${rowCard}" id="card-${idx}" style="animation-delay:${animIdx*0.03}s">
+    <div class="task-main" onclick="toggleExpand(${idx})">
+      <div class="priority-dot ${pc}-dot"></div>
+      <div class="brand-tag">${t.project||'—'}</div>
+      <div><span class="priority-tag ${pc}-tag">${t.priority||'—'}</span></div>
+      <div class="task-name-text">${t.task}</div>
+      <div class="deadline-cell ${dClass}">${dLabel}${dSub}</div>
+      <div><span class="status-pill ${statusClass(status)}">${status||'—'}</span></div>
+      <div style="font-size:10px;color:var(--muted)">${totalSecs>0?'⏱ '+fmtTime(totalSecs)+(sessions>0?` (${sessions}s)`:''): sessions>0?sessions+' sessions':''}</div>
+      <button class="timer-btn${isRunning?' running':''}" onclick="event.stopPropagation();toggleTimer(${idx})" title="${isRunning?'Pause':'Start'} timer">${isRunning?'⏸':'▶'}</button>
+    </div>
+    <div class="task-expand" id="expand-${idx}">
+      <div class="expand-grid">
+        <div class="expand-section">
+          <label>Time Logged</label>
+          <div class="time-log-box">
+            <div class="time-total" id="tl-display-${idx}">${fmtTime(totalSecs)}</div>
+            <div class="time-sessions">${sessions} session${sessions!==1?'s':''} logged</div>
+            <div class="session-log" id="sessions-${idx}">
+              ${tl?tl.sessions.slice(-3).map(s=>`<div class="session-entry"><span>${s.label}</span><span style="color:var(--green)">${fmtTime(s.duration)}</span></div>`).join(''):''}
+            </div>
+          </div>
+        </div>
+        <div class="expand-section">
+          <label>Update Status</label>
+          <select class="status-select" id="sel-${idx}" onchange="updateStatus(${idx})">
+            <option ${status==='To Be Initiated'?'selected':''}>To Be Initiated</option>
+            <option ${status==='WIP'?'selected':''}>WIP</option>
+            <option ${status==='Review'?'selected':''}>Review</option>
+            <option ${status==='Stuck Need Help'?'selected':''}>Stuck Need Help</option>
+            <option ${status==='Client Delayed'?'selected':''}>Client Delayed</option>
+            <option ${status==='Done'?'selected':''}>Done</option>
+          </select>
+          <div style="font-size:10px;color:var(--muted);margin-top:8px">Assignee: ${t.assignee||'—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Deadline: ${t.deadline||'No deadline'}</div>
+        </div>
+        <div class="expand-section">
+          <label>Notes / Updates</label>
+          <textarea class="updates-textarea" id="upd-${idx}" placeholder="Add update or notes...">${updates}</textarea>
+          <button class="save-btn" onclick="saveUpdates(${idx})">SAVE NOTES</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleExpand(idx){
+  const card=document.getElementById('card-'+idx);
+  const exp=document.getElementById('expand-'+idx);
+  const isOpen=exp.style.display==='block';
+  exp.style.display=isOpen?'none':'block';
+  card.classList.toggle('expanded',!isOpen);
+}
+
+// ═══════════════════════════════════
+// TIMER
+// ═══════════════════════════════════
+function toggleTimer(idx){
+  if(timerState.running&&timerState.taskIdx===idx){
+    pauseTimer();
+  } else {
+    if(timerState.running) pauseTimer();
+    startTimer(idx);
+  }
+}
+
+function startTimer(idx){
+  timerState.taskIdx=idx;
+  timerState.running=true;
+  timerState.startedAt=Date.now();
+  timerState.intervalId=setInterval(tickTimer,1000);
+  updateTimerUI(idx);
+  document.getElementById('sidebarTimer').classList.add('visible');
+  document.getElementById('atm-task').textContent=allTasks[idx].task;
+  showToast('Timer started','success');
+  updateFocusTimerBtn();
+}
+
+function pauseTimer(){
+  if(!timerState.running) return;
+  clearInterval(timerState.intervalId);
+  const idx=timerState.taskIdx;
+  const elapsed=Math.round((Date.now()-timerState.startedAt)/1000);
+  if(elapsed>0){
+    if(!timeLogs[idx]) timeLogs[idx]={total:0,sessions:[]};
+    timeLogs[idx].total+=elapsed;
+    timeLogs[idx].sessions.push({
+      label:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),
+      duration:elapsed
+    });
+    // Update display
+    const tlDisp=document.getElementById('tl-display-'+idx);
+    if(tlDisp) tlDisp.textContent=fmtTime(timeLogs[idx].total);
+    const sessLog=document.getElementById('sessions-'+idx);
+    if(sessLog){
+      const sessions=timeLogs[idx].sessions;
+      sessLog.innerHTML=sessions.slice(-3).map(s=>`<div class="session-entry"><span>${s.label}</span><span style="color:var(--green)">${fmtTime(s.duration)}</span></div>`).join('');
+    }
+  }
+  timerState.running=false;
+  timerState.elapsed=0;
+  updateTimerUI(idx,false);
+  document.getElementById('sidebarTimer').classList.remove('visible');
+  showToast('Timer paused — '+fmtTime(timeLogs[idx]?.total||0)+' logged','info');
+  updateFocusTimerBtn();
+}
+
+function tickTimer(){
+  const elapsed=Math.round((Date.now()-timerState.startedAt)/1000);
+  const total=(timeLogs[timerState.taskIdx]?.total||0)+elapsed;
+  document.getElementById('atm-time').textContent=fmtTime(total);
+  // Update card time display
+  const tlDisp=document.getElementById('tl-display-'+timerState.taskIdx);
+  if(tlDisp) tlDisp.textContent=fmtTime(total);
+}
+
+function updateTimerUI(idx,running=true){
+  const card=document.getElementById('card-'+idx);
+  if(!card) return;
+  if(running) card.classList.add('running'); else card.classList.remove('running');
+  const btn=card.querySelector('.timer-btn');
+  if(btn){btn.textContent=running?'⏸':'▶';if(running)btn.classList.add('running');else btn.classList.remove('running');}
+}
+
+function startFocusTimer(){
+  if(focusTaskIdx===null) return;
+  if(timerState.running&&timerState.taskIdx===focusTaskIdx){
+    pauseTimer();
+  } else {
+    if(timerState.running) pauseTimer();
+    startTimer(focusTaskIdx);
+  }
+  updateFocusTimerBtn();
+}
+
+function updateFocusTimerBtn(){
+  const btn=document.getElementById('focus-timer-btn');
+  if(!btn||focusTaskIdx===null) return;
+  const running=timerState.running&&timerState.taskIdx===focusTaskIdx;
+  btn.textContent=running?'⏸ Pause Timer':'▶ Start Timer';
+}
+
+function fmtTime(secs){
+  const h=Math.floor(secs/3600);
+  const m=Math.floor((secs%3600)/60);
+  const s=secs%60;
+  if(h>0) return `${h}h ${String(m).padStart(2,'0')}m`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════
+// STATUS & NOTES
+// ═══════════════════════════════════
+function updateStatus(idx){
+  const sel=document.getElementById('sel-'+idx);
+  statusOverrides[idx]=sel.value;
+  // Refresh pill in task-main
+  const card=document.getElementById('card-'+idx);
+  if(card){
+    const pill=card.querySelector('.status-pill');
+    if(pill){pill.className='status-pill '+statusClass(sel.value);pill.textContent=sel.value;}
+  }
+  showToast('Status updated','success');
+  renderDashboard();
+}
+
+function saveUpdates(idx){
+  const ta=document.getElementById('upd-'+idx);
+  updatesOverrides[idx]=ta.value;
+  showToast('Notes saved','success');
+}
+
+// ═══════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════
+function renderAnalytics(){
+  const idxs=filteredTasks();
+  if(idxs.length===0) return;
+
+  // Status donut
+  const statusGroups={};
+  idxs.forEach(i=>{
+    const s=getStatus(i);
+    statusGroups[s]=(statusGroups[s]||0)+1;
+  });
+  const statusColors={'WIP':'#8b6fff','To Be Initiated':'#4a4a65','Done':'#00d68f','Review':'#f5c842','Stuck Need Help':'#ff4d88','Client Delayed':'#ff4d88'};
+  const total=idxs.length;
+  let offset=0;
+  const r=35,circ=2*Math.PI*r;
+  let svgPaths='<circle cx="50" cy="50" r="35" fill="none" stroke="var(--s2)" stroke-width="18"/>';
+  const entries=Object.entries(statusGroups).sort((a,b)=>b[1]-a[1]);
+  entries.forEach(([s,count])=>{
+    const pct=count/total;
+    const dash=pct*circ;
+    const color=statusColors[s]||'var(--muted)';
+    svgPaths+=`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${color}" stroke-width="18" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 50 50)" stroke-linecap="butt"/>`;
+    offset+=dash;
+  });
+  document.getElementById('donutSvg').innerHTML=svgPaths;
+  document.getElementById('donutLegend').innerHTML=entries.map(([s,c])=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${statusColors[s]||'var(--muted)'}"></div>
+      <span style="font-size:11px;color:var(--muted)">${s}</span>
+      <span class="legend-val">${c}</span>
+    </div>`).join('');
+
+  // Brand bar chart
+  const brandGroups={};
+  idxs.forEach(i=>{const b=allTasks[i].project||'Unknown';brandGroups[b]=(brandGroups[b]||0)+1;});
+  const maxB=Math.max(...Object.values(brandGroups));
+  const bColors=['#ff4500','#8b6fff','#00d68f','#f5c842','#ff4d88','#4d9fff'];
+  document.getElementById('brandBarChart').innerHTML=Object.entries(brandGroups).map(([b,c],i)=>`
+    <div class="bar-row">
+      <div class="bar-label">${b}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(c/maxB*100).toFixed(0)}%;background:${bColors[i%bColors.length]}"></div></div>
+      <div class="bar-val">${c}</div>
+    </div>`).join('');
+
+  // Priority
+  const p0=idxs.filter(i=>(allTasks[i].priority||'').includes('P0')).length;
+  const p1=idxs.filter(i=>(allTasks[i].priority||'').includes('P1')).length;
+  const p2=idxs.filter(i=>(allTasks[i].priority||'').includes('P2')).length;
+  const overdueC=idxs.filter(i=>deadlineStatus(allTasks[i].deadline)==='overdue'&&!isDone(i)).length;
+  document.getElementById('priorityVelocity').innerHTML=[
+    ['P0 Tasks',p0,'var(--accent)'],
+    ['P1 Tasks',p1,'var(--yellow)'],
+    ['P2 Tasks',p2,'var(--green)'],
+    ['Overdue',overdueC,'var(--pink)'],
+  ].map(([l,v,c])=>`<div class="velocity-card"><div class="velocity-num" style="color:${c}">${v}</div><div class="velocity-label">${l}</div></div>`).join('');
+
+  // Time
+  const totalTracked=Object.values(timeLogs).reduce((a,b)=>a+b.total,0);
+  const totalSessions=Object.values(timeLogs).reduce((a,b)=>a+b.sessions.length,0);
+  const avgSession=totalSessions>0?Math.round(totalTracked/totalSessions):0;
+  const trackedTasks=Object.keys(timeLogs).length;
+  document.getElementById('timeVelocity').innerHTML=[
+    [fmtTime(totalTracked),'Total Time','var(--green)'],
+    [totalSessions,'Sessions','var(--purple)'],
+    [fmtTime(avgSession),'Avg Session','var(--blue)'],
+    [trackedTasks,'Tasks Timed','var(--yellow)'],
+  ].map(([v,l,c])=>`<div class="velocity-card"><div class="velocity-num" style="color:${c}">${v}</div><div class="velocity-label">${l}</div></div>`).join('');
+
+  // Time leaderboard
+  const sorted=Object.entries(timeLogs).sort((a,b)=>b[1].total-a[1].total).slice(0,8);
+  document.getElementById('timeLeaderboard').innerHTML=sorted.length>0
+    ?sorted.map(([idx,log],i)=>`
+      <div class="tl-row">
+        <div class="tl-rank">${i+1}</div>
+        <div class="tl-task">${allTasks[idx]?.task||'Unknown task'}</div>
+        <div style="font-size:10px;color:var(--muted)">${allTasks[idx]?.project||''}</div>
+        <div class="tl-time">${fmtTime(log.total)}</div>
+      </div>`).join('')
+    :'<div class="empty"><div class="empty-icon">⏱</div><div class="empty-text">Start timing tasks to see data here</div></div>';
+}
+
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast '+type+' show';
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
