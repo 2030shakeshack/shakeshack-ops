@@ -350,6 +350,7 @@ body {
 .tab-btn.active[data-tab="wip"] { background: var(--purple-soft); color: var(--purple); }
 .tab-btn.active[data-tab="stuck"] { background: var(--pink-soft); color: var(--pink); }
 .tab-btn.active[data-tab="yolo"] { background: var(--orange-soft); color: var(--orange); }
+.tab-btn.active[data-tab="tbi"] { background: var(--blue-soft); color: var(--blue); }
 .tab-btn.active[data-tab="done"] { background: var(--green-soft); color: var(--green); }
 .tab-count {
   font-size: 10px; font-weight: 700;
@@ -797,6 +798,9 @@ body {
       <button class="tab-btn" data-tab="yolo" onclick="setTab('yolo',this)">
         🔥 Yoo Just Do It <span class="tab-count" id="tc-yolo">0</span>
       </button>
+      <button class="tab-btn" data-tab="tbi" onclick="setTab('tbi',this)">
+        ◌ To Be Initiated <span class="tab-count" id="tc-tbi">0</span>
+      </button>
       <button class="tab-btn" data-tab="done" onclick="setTab('done',this)">
         ✓ Done <span class="tab-count" id="tc-done">0</span>
       </button>
@@ -1011,7 +1015,8 @@ let tasks = [];
 let currentTab = 'overdue';
 let currentBrand = 'all';
 let timer = { idx: null, running: false, startedAt: null, ivl: null };
-let timeLogs = {}; // idx → { total, sessions }
+// Load persisted timer logs from localStorage
+let timeLogs = (()=>{try{return JSON.parse(localStorage.getItem('ss_timelogs')||'{}')}catch(e){return {}}})();
 let statusOvr = {};
 let notesOvr = {};
 let focusIdx = null;
@@ -1021,6 +1026,32 @@ document.getElementById('datechip').textContent = new Date().toLocaleDateString(
 
 // Auto-load from sheet on every page open
 loadFromSheet();
+
+// Handle ?addTask= URL param (from Claude quick-add links)
+(function handleUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const taskParam = params.get('addTask');
+  if (taskParam) {
+    try {
+      const t = JSON.parse(decodeURIComponent(taskParam));
+      // Show confirmation modal pre-filled
+      setTimeout(() => {
+        document.getElementById('mt-task').value = t.task || '';
+        document.getElementById('mt-deadline').value = t.deadlineISO || '';
+        document.getElementById('mt-notes').value = t.notes || '';
+        if (t.priority) document.getElementById('mt-priority').value = t.priority;
+        if (t.status) document.getElementById('mt-status').value = t.status;
+        // Set brand after brands are populated
+        setTimeout(() => {
+          if (t.project) document.getElementById('mt-brand').value = t.project;
+        }, 2000);
+        openAddTask();
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 1500);
+    } catch(e) { console.log('URL param parse error', e); }
+  }
+})();
 
 // ═══════════════════════════════════════════
 // NAVIGATION
@@ -1248,6 +1279,7 @@ function isDone(i){ const s=getStatus(i).toLowerCase(); return s.includes('done'
 function isStuck(i){ const s=getStatus(i).toLowerCase(); return s.includes('stuck')||s.includes('need help'); }
 function isWIP(i){ const s=getStatus(i).toLowerCase(); return s.includes('wip')||s.includes('progress'); }
 function isYolo(i){ const s=getStatus(i); return s.toLowerCase().includes('yoo')||s.toLowerCase().includes('just do')||s.toLowerCase().includes('just doo'); }
+function isTBI(i){ const s=getStatus(i).toLowerCase(); return s.includes('to be initiated')||s.includes('tbi')||s===''||(!isDone(i)&&!isWIP(i)&&!isStuck(i)&&!isYolo(i)&&dlStatus(tasks[i].deadline)!=='overdue'); }
 
 function statusChipClass(s){
   const sl=s.toLowerCase();
@@ -1295,6 +1327,7 @@ function buildDashboard(){
   const wip = idxs.filter(i=>isWIP(i)&&!isDone(i));
   const stuck = idxs.filter(i=>isStuck(i));
   const yolo = idxs.filter(i=>isYolo(i));
+  const tbi = idxs.filter(i=>isTBI(i));
   const done = idxs.filter(i=>isDone(i));
 
   // Stats
@@ -1308,6 +1341,7 @@ function buildDashboard(){
   document.getElementById('tc-wip').textContent = wip.length;
   document.getElementById('tc-stuck').textContent = stuck.length;
   document.getElementById('tc-yolo').textContent = yolo.length;
+  document.getElementById('tc-tbi').textContent = tbi.length;
   document.getElementById('tc-done').textContent = done.length;
   document.getElementById('nb-overdue').textContent = overdue.length;
 
@@ -1331,7 +1365,7 @@ function buildDashboard(){
     document.getElementById('focusBanner').classList.remove('visible');
   }
 
-  renderTab(currentTab, {overdue,warning,wip,stuck,yolo,done});
+  renderTab(currentTab, {overdue,warning,wip,stuck,yolo,tbi,done});
 }
 
 function setTab(tab, el){
@@ -1472,7 +1506,9 @@ function pauseTimer(){
   if(elapsed>0){
     if(!timeLogs[idx]) timeLogs[idx]={total:0,sessions:[]};
     timeLogs[idx].total+=elapsed;
-    timeLogs[idx].sessions.push({label:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),dur:elapsed});
+    const sessionLabel = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    timeLogs[idx].sessions.push({label:sessionLabel,dur:elapsed});
+    localStorage.setItem('ss_timelogs', JSON.stringify(timeLogs)); // persist across refreshes
     refreshTimeDisplay(idx);
   }
   timer.running=false; timer.idx=null;
@@ -1480,8 +1516,12 @@ function pauseTimer(){
   document.getElementById('timerMini').classList.remove('visible');
   // Sync time to sheet
   const rowIdx = tasks[idx].rowIndex;
-  if(rowIdx && timeLogs[idx]) sheetUpdateTime(rowIdx, fmt(timeLogs[idx].total));
-  toast(`Timer paused — ${fmt(timeLogs[idx]?.total||0)} logged`,'info');
+  if(rowIdx && timeLogs[idx]) {
+    const timeStr = fmt(timeLogs[idx].total);
+    apiCall({ action: 'updateTime', row: rowIdx, time: timeStr });
+    localStorage.setItem('ss_timelogs', JSON.stringify(timeLogs));
+  }
+  toast(`⏱ ${fmt(timeLogs[idx]?.total||0)} logged · syncing to sheet`,'info');
   updateFocusBtn();
 }
 function tickTimer(){
@@ -1517,9 +1557,11 @@ function updateFocusBtn(){
   btn.textContent=(timer.running&&timer.idx===focusIdx)?'⏸ Pause Timer':'▶ Start Timer';
 }
 function fmt(secs){
+  if(!secs||secs<0) return '0m';
   const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
   if(h>0) return `${h}h ${String(m).padStart(2,'0')}m`;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if(m>0) return `${m}m ${String(s).padStart(2,'0')}s`;
+  return `${s}s`;
 }
 
 // ═══════════════════════════════════════════
@@ -1535,10 +1577,10 @@ function changeStatus(idx){
   // Sync to sheet
   const rowIndex = tasks[idx].rowIndex;
   if(rowIndex){
-    sheetUpdateStatus(rowIndex, v);
-    toast('Status updated + synced to sheet ✓','success');
+    apiCall({ action: 'updateStatus', row: rowIndex, status: v });
+    toast(`Status → ${v} · Syncing to sheet...`, 'success');
   } else {
-    toast('Status updated ✓','success');
+    toast('Status updated locally', 'info');
   }
   buildDashboard();
 }
@@ -1549,10 +1591,10 @@ function saveNotes(idx){
   localStorage.setItem('ss_tasks', JSON.stringify(tasks)); // persist
   const rowIndex = tasks[idx].rowIndex;
   if(rowIndex){
-    sheetUpdateNotes(rowIndex, notes);
-    toast('Notes synced to sheet ✓','success');
+    apiCall({ action: 'updateNotes', row: rowIndex, notes });
+    toast('Notes syncing to sheet ✓','success');
   } else {
-    toast('Notes saved ✓','success');
+    toast('Notes saved locally','info');
   }
 }
 
@@ -1591,18 +1633,24 @@ function submitTask(){
     status: document.getElementById('mt-status').value,
     task,
     deadline: dlFormatted,
+    notes: document.getElementById('mt-notes').value,
     updates: document.getElementById('mt-notes').value,
   };
+
+  // Add to local state immediately
   tasks.push(newTask);
-  localStorage.setItem('ss_tasks', JSON.stringify(tasks)); // persist
-  // Sync to sheet
-  sheetAddTask(newTask).then(res => {
-    if(res.ok) toast(`Task added + synced to sheet ✓`,'success');
-    else toast(`Task added locally (sheet sync pending)`,'info');
-  });
+  localStorage.setItem('ss_tasks', JSON.stringify(tasks));
   closeModal();
   populateBrands();
   buildDashboard();
+  toast('Adding to sheet...', 'info');
+
+  // Sync to sheet — then reload to get rowIndex assigned
+  apiCall({ action: 'addTask', task: JSON.stringify(newTask) }).then(() => {
+    toast(`✓ "${task.substring(0,25)}..." added to sheet`, 'success');
+    // Reload from sheet after 2s to get proper rowIndex
+    setTimeout(() => loadFromSheet(), 2000);
+  });
 }
 
 // ═══════════════════════════════════════════
