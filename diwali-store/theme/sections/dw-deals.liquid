@@ -44,7 +44,8 @@
           {%- if fg_total > 0 -%}
             <div class="dw-bar"><i style="width:{{ fg_pct }}%"></i></div>
             {%- assign left_html = '<b class="dw-num">' | append: fg_left | append: '</b>' -%}
-            <small>{{ s.fg_counter | replace: '{left}', left_html | replace: '{total}', fg_total }}</small>
+            {%- assign fg_counter = s.fg_counter | replace: '{left}', left_html | replace: '{total}', fg_total -%}
+            <small>{{ fg_counter }}</small>
           {%- endif -%}
         </div>
       </div>
@@ -102,7 +103,8 @@
               {%- endif -%}
             </a>
             <div>
-              <div class="dw-k">{{ b.label | replace: '{n}', deal_no }}</div>
+              {%- assign eyebrow = b.label | replace: '{n}', deal_no -%}
+              <div class="dw-k">{{ eyebrow }}</div>
               <h3><a href="{{ p.url }}">{{ b.title | default: p.title }}</a></h3>
               <div class="dw-pr dw-num">
                 <b>{{ v.price | money_without_trailing_zeros }}</b>
@@ -118,7 +120,8 @@
                 <div class="dw-bar"><i style="width:{{ total | minus: left | times: 100 | divided_by: total | at_least: 0 }}%"></i></div>
               {%- endif -%}
               {%- if left > 0 and left <= s.low_stock -%}
-                <div class="dw-left dw-num">{{ s.left_label | replace: '{n}', left }}</div>
+                {%- assign left_text = s.left_label | replace: '{n}', left -%}
+                <div class="dw-left dw-num">{{ left_text }}</div>
               {%- endif -%}
               {%- if ended -%}
                 <button type="button" class="dw-btn dw-btn--acc" disabled>{{ s.ended_label }}</button>
@@ -167,7 +170,7 @@
 
     { "type": "header", "content": "Deal cards" },
     { "type": "text", "id": "ends_label", "label": "Timer label", "default": "Ends in" },
-    { "type": "range", "id": "low_stock", "label": "Show “Only X left” at or below", "min": 1, "max": 500, "step": 1, "default": 200 },
+    { "type": "range", "id": "low_stock", "label": "Show “Only X left” at or below", "min": 1, "max": 100, "step": 1, "default": 100 },
     { "type": "text", "id": "left_label", "label": "Stock label", "default": "Only {n} left" },
     { "type": "select", "id": "button", "label": "Button action", "default": "cart",
       "options": [ { "value": "cart", "label": "Add to cart" }, { "value": "buy", "label": "Buy now (GoKwik)" } ] },

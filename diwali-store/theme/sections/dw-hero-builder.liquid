@@ -17,7 +17,15 @@
   assign k = 0
   assign cats = '|'
   assign cat_count = 0
-  assign msg_v = s.msg_product.selected_or_first_available_variant
+  assign pjson = ''
+  assign m = nil
+  for block in section.blocks
+    if block.type == 'message'
+      assign m = block.settings
+      assign m_attrs = block.shopify_attributes
+    endif
+  endfor
+  assign msg_v = m.card_product.selected_or_first_available_variant
 -%}
 
 {%- capture tiles -%}
@@ -84,7 +92,7 @@
   {%- assign tcount = 0 -%}
   {%- for block in section.blocks -%}
     {%- assign bp = block.settings.product -%}
-    {%- if bp == blank -%}{%- continue -%}{%- endif -%}
+    {%- if block.type != 'tier' or bp == blank -%}{%- continue -%}{%- endif -%}
     {%- liquid
       assign bv = bp.selected_or_first_available_variant
       assign price = bv.price
@@ -146,7 +154,7 @@
         <div class="dw-sizes" role="group" aria-label="Box size" data-sizes>
           {%- assign ti = 0 -%}
           {%- for block in section.blocks -%}
-            {%- if block.settings.product == blank -%}{%- continue -%}{%- endif -%}
+            {%- if block.type != 'tier' or block.settings.product == blank -%}{%- continue -%}{%- endif -%}
             {%- liquid
               assign bv = block.settings.product.selected_or_first_available_variant
               assign price = bv.price
@@ -158,7 +166,8 @@
             -%}
             <button type="button" data-i="{{ ti }}" aria-pressed="false" {{ block.shopify_attributes }}>
               {%- if block.settings.badge != blank %}<i>{{ block.settings.badge }}</i>{% endif -%}
-              <b>{{ block.settings.label | replace: '{n}', block.settings.items }}</b>
+              {%- assign tier_label = block.settings.label | replace: '{n}', block.settings.items -%}
+              <b>{{ tier_label }}</b>
               <span class="dw-num">{{ price | round | money_without_trailing_zeros }}</span>
             </button>
             {%- assign ti = ti | plus: 1 -%}
@@ -187,12 +196,12 @@
           </button>
         {%- endif -%}
 
-        {%- if s.msg_enable and msg_v -%}
-          <div class="dw-pmsg">
+        {%- if msg_v -%}
+          <div class="dw-pmsg" {{ m_attrs }}>
             <input type="checkbox" id="DwMsg-{{ section.id }}" data-msg-chk>
             <label for="DwMsg-{{ section.id }}">
-              <b>{{ s.msg_title }}</b> <span class="dw-num">+{{ msg_v.price | money_without_trailing_zeros }}</span>
-              <small data-msg-sub data-default="{{ s.msg_sub | escape }}">{{ s.msg_sub }}</small>
+              <b>{{ m.title }}</b> <span class="dw-num">+{{ msg_v.price | money_without_trailing_zeros }}</span>
+              <small data-msg-sub data-default="{{ m.sub | escape }}">{{ m.sub }}</small>
             </label>
             <button type="button" class="dw-edit" data-msg-edit hidden>Edit</button>
           </div>
@@ -207,28 +216,28 @@
     </div>
   </div>
 
-  {%- if s.msg_enable and msg_v -%}
+  {%- if msg_v -%}
     <dialog class="dw-dlg" aria-labelledby="DwMsgT-{{ section.id }}">
       <div class="dw-dlg-h">
-        <h2 id="DwMsgT-{{ section.id }}">{{ s.msg_dlg_title }} <i>{{ s.msg_dlg_italic }}</i></h2>
+        <h2 id="DwMsgT-{{ section.id }}">{{ m.dlg_title }} <i>{{ m.dlg_italic }}</i></h2>
         <button type="button" class="dw-x" data-dw-close aria-label="Close">✕</button>
       </div>
       <div class="dw-env" aria-hidden="true">
-        <div class="dw-letter"><small>{{ s.msg_greeting }}</small><div class="dw-to" data-pv-to></div><div class="dw-msg" data-pv-msg></div></div>
-        <div class="dw-envelope"><svg viewBox="0 0 320 200" preserveAspectRatio="none"><path d="M0 0L160 92 320 0" fill="none" stroke="#cdbb98" stroke-width="2"/></svg><div class="dw-seal">{{ s.msg_seal }}</div><div class="dw-for" data-pv-for></div></div>
+        <div class="dw-letter"><small>{{ m.greeting }}</small><div class="dw-to" data-pv-to></div><div class="dw-msg" data-pv-msg></div></div>
+        <div class="dw-envelope"><svg viewBox="0 0 320 200" preserveAspectRatio="none"><path d="M0 0L160 92 320 0" fill="none" stroke="#cdbb98" stroke-width="2"/></svg><div class="dw-seal">{{ m.seal }}</div><div class="dw-for" data-pv-for></div></div>
       </div>
-      <p class="dw-sub">{{ s.msg_note }}</p>
+      <p class="dw-sub">{{ m.note }}</p>
       <div class="dw-two">
         <div class="dw-fld"><label for="DwTo-{{ section.id }}">To</label><input id="DwTo-{{ section.id }}" name="to" maxlength="24" autocomplete="off"></div>
         <div class="dw-fld"><label for="DwFrom-{{ section.id }}">From</label><input id="DwFrom-{{ section.id }}" name="from" maxlength="24" autocomplete="name"></div>
       </div>
-      {%- assign quick = s.msg_quick | newline_to_br | split: '<br />' -%}
+      {%- assign quick = m.quick | newline_to_br | split: '<br />' -%}
       <div class="dw-fld">
         <label for="DwText-{{ section.id }}">Your message</label>
-        <textarea id="DwText-{{ section.id }}" name="text" maxlength="{{ s.msg_max }}" rows="3">{{ quick.first | strip | escape | replace: '\n', '&#10;' }}</textarea>
+        <textarea id="DwText-{{ section.id }}" name="text" maxlength="{{ m.max }}" rows="3">{{ quick.first | strip | escape | replace: '\n', '&#10;' }}</textarea>
         <div class="dw-cc dw-num" data-pv-count></div>
       </div>
-      {%- if s.msg_quick != blank -%}
+      {%- if m.quick != blank -%}
         <div class="dw-quick" data-quick>
           {%- for q in quick -%}
             {%- assign q = q | strip -%}
@@ -253,7 +262,7 @@
       "buyNow": {% if s.button == 'buy' %}true{% else %}false{% endif %},
       "tiers": [{{ tjson }}],
       "products": [{{ pjson }}],
-      "msg": {% if s.msg_enable and msg_v %}{ "v": {{ msg_v.id }}, "price": {{ msg_v.price }} }{% else %}null{% endif %},
+      "msg": {% if msg_v %}{ "v": {{ msg_v.id }}, "price": {{ msg_v.price }} }{% else %}null{% endif %},
       "l": {
         "picked": {{ s.picked_label | json }},
         "add": {{ s.add_label | json }},
@@ -280,100 +289,79 @@
 
 {% schema %}
 {
-  "name": "Diwali: Hero + box builder",
+  "name": "Diwali: Box builder",
   "tag": "section",
   "class": "dw-section",
-  "max_blocks": 6,
+  "max_blocks": 7,
   "settings": [
-    { "type": "text", "id": "anchor", "label": "Anchor ID", "default": "box", "info": "Used by the jump nav, e.g. #box" },
-    { "type": "header", "content": "Hero" },
-    { "type": "text", "id": "tag", "label": "Pill label", "default": "Diwali Gifting Store" },
-    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Build your <em>Diwali box</em>", "info": "Italic text is shown in the accent colour" },
-    { "type": "text", "id": "subheading", "label": "Subheading" },
-    { "type": "image_picker", "id": "bg_image", "label": "Background image (optional)" },
-    { "type": "checkbox", "id": "show_toran", "label": "Show toran (marigold garland)", "default": true },
-    { "type": "checkbox", "id": "show_diya", "label": "Show animated diya", "default": true },
-    { "type": "color", "id": "c_bg", "label": "Background", "default": "#281a1b" },
-    { "type": "color", "id": "c_acc", "label": "Accent", "default": "#e8913c" },
-    { "type": "color", "id": "c_acc2", "label": "Accent light", "default": "#f5b04f" },
-    { "type": "color", "id": "c_gold", "label": "Gold", "default": "#c9a24b" },
-
-    { "type": "header", "content": "Builder" },
-    { "type": "text", "id": "builder_title", "label": "Card title", "default": "Fill your box" },
-    { "type": "text", "id": "picked_label", "label": "Progress label", "default": "{x} of {n} picked", "info": "{x} = picked, {n} = box size" },
-    { "type": "collection", "id": "collection", "label": "Products to choose from" },
-    { "type": "range", "id": "product_limit", "label": "Max products loaded", "min": 6, "max": 50, "step": 1, "default": 24 },
-    { "type": "range", "id": "initial_mobile", "label": "Visible before “View more” (mobile)", "min": 3, "max": 24, "step": 3, "default": 6 },
-    { "type": "range", "id": "initial_desktop", "label": "Visible before “View more” (desktop)", "min": 4, "max": 24, "step": 4, "default": 8 },
-    { "type": "text", "id": "more_label", "label": "View more label", "default": "View more products" },
-    { "type": "text", "id": "less_label", "label": "Show less label", "default": "Show less" },
-    { "type": "select", "id": "chips", "label": "Category filter chips", "default": "type",
-      "options": [
-        { "value": "none", "label": "Off" },
-        { "value": "type", "label": "Product type" },
-        { "value": "tag", "label": "Tag prefixed dw_cat_ (e.g. dw_cat_Perfumes)" }
-      ] },
-    { "type": "text", "id": "chips_all", "label": "“All” chip label", "default": "All" },
-    { "type": "select", "id": "image_ratio", "label": "Tile image ratio", "default": "square",
-      "options": [ { "value": "square", "label": "Square" }, { "value": "portrait", "label": "Portrait 4:5" } ] },
-    { "type": "select", "id": "tile_meta", "label": "Tile price line", "default": "variant_mrp",
-      "options": [
-        { "value": "variant_mrp", "label": "Size + struck MRP (bundle-price style)" },
-        { "value": "price", "label": "Price + compare-at" }
-      ] },
-    { "type": "range", "id": "max_per", "label": "Max of the same product per box", "min": 1, "max": 5, "step": 1, "default": 2 },
-    { "type": "checkbox", "id": "auto_upgrade", "label": "Auto-upgrade box size when full", "default": true },
-    { "type": "checkbox", "id": "show_save", "label": "Show “Save ₹X” when box is full", "default": true },
-    { "type": "text", "id": "save_label", "label": "Savings label", "default": "Save {amount}" },
-    { "type": "select", "id": "button", "label": "Button action", "default": "cart",
-      "options": [ { "value": "cart", "label": "Add to cart (opens cart drawer)" }, { "value": "buy", "label": "Buy now (GoKwik)" } ] },
-    { "type": "text", "id": "add_label", "label": "Button label (box full)", "default": "Add box to cart" },
-    { "type": "text", "id": "pick_label", "label": "Button label (box not full)", "default": "Pick {n} more" },
-    { "type": "richtext", "id": "note", "label": "Small print under the builder" },
-    { "type": "text", "id": "vendor", "label": "Vendor sent in uniware_items", "default": "TMC" },
-
-    { "type": "header", "content": "Personalised message card" },
-    { "type": "checkbox", "id": "msg_enable", "label": "Enable", "default": true },
-    { "type": "product", "id": "msg_product", "label": "Message card product", "info": "Added as its own line with To / From / Message properties. Its price is the add-on price." },
-    { "type": "text", "id": "msg_title", "label": "Checkbox title", "default": "Add a personalised message" },
-    { "type": "text", "id": "msg_sub", "label": "Checkbox subtext", "default": "Printed card, sealed in an ivory shagun envelope" },
-    { "type": "text", "id": "msg_dlg_title", "label": "Popup heading", "default": "Make it special" },
-    { "type": "text", "id": "msg_dlg_italic", "label": "Popup italic line", "default": "for someone." },
-    { "type": "text", "id": "msg_greeting", "label": "Card greeting", "default": "SHUBH DEEPAVALI" },
-    { "type": "text", "id": "msg_seal", "label": "Envelope seal letter", "default": "M" },
-    { "type": "text", "id": "msg_note", "label": "Popup note", "default": "Gift-wrapped · card sealed in an ivory shagun envelope" },
-    { "type": "range", "id": "msg_max", "label": "Max message length", "min": 60, "max": 300, "step": 10, "default": 150 },
-    { "type": "textarea", "id": "msg_quick", "label": "Quick messages", "info": "One per line. The first one pre-fills the message box. Write \\n for a line break inside a message.", "default": "May your Diwali smell as good as you do.\\nWith love.\nLight up, level up. Happy Diwali!\nHere's to a year that smells like success. Shubh Deepavali." },
-
-    { "type": "header", "content": "Spacing" },
-    { "type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 78 },
-    { "type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 34 },
-    { "type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 104 },
-    { "type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 56 }
+    {"type": "text", "id": "anchor", "label": "Anchor ID", "default": "box", "info": "Used by the jump nav, e.g. #box"},
+    {"type": "header", "content": "Hero"},
+    {"type": "text", "id": "tag", "label": "Pill label", "default": "Diwali Gifting Store"},
+    {"type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Build your <em>Diwali box</em>", "info": "Italic text is shown in the accent colour"},
+    {"type": "text", "id": "subheading", "label": "Subheading"},
+    {"type": "image_picker", "id": "bg_image", "label": "Background image (optional)"},
+    {"type": "checkbox", "id": "show_toran", "label": "Show toran (marigold garland)", "default": true},
+    {"type": "checkbox", "id": "show_diya", "label": "Show animated diya", "default": true},
+    {"type": "color", "id": "c_bg", "label": "Background", "default": "#281a1b"},
+    {"type": "color", "id": "c_acc", "label": "Accent", "default": "#e8913c"},
+    {"type": "color", "id": "c_acc2", "label": "Accent light", "default": "#f5b04f"},
+    {"type": "color", "id": "c_gold", "label": "Gold", "default": "#c9a24b"},
+    {"type": "header", "content": "Builder"},
+    {"type": "text", "id": "builder_title", "label": "Card title", "default": "Fill your box"},
+    {"type": "text", "id": "picked_label", "label": "Progress label", "default": "{x} of {n} picked", "info": "{x} = picked, {n} = box size"},
+    {"type": "collection", "id": "collection", "label": "Products to choose from"},
+    {"type": "range", "id": "product_limit", "label": "Max products loaded", "min": 6, "max": 50, "step": 1, "default": 24},
+    {"type": "range", "id": "initial_mobile", "label": "Visible before “View more” (mobile)", "min": 3, "max": 24, "step": 3, "default": 6},
+    {"type": "range", "id": "initial_desktop", "label": "Visible before “View more” (desktop)", "min": 4, "max": 24, "step": 4, "default": 8},
+    {"type": "text", "id": "more_label", "label": "View more label", "default": "View more products"},
+    {"type": "text", "id": "less_label", "label": "Show less label", "default": "Show less"},
+    {"type": "select", "id": "chips", "label": "Category filter chips", "default": "type", "options": [{"value": "none", "label": "Off"}, {"value": "type", "label": "Product type"}, {"value": "tag", "label": "Tag prefixed dw_cat_ (e.g. dw_cat_Perfumes)"}]},
+    {"type": "text", "id": "chips_all", "label": "“All” chip label", "default": "All"},
+    {"type": "select", "id": "image_ratio", "label": "Tile image ratio", "default": "square", "options": [{"value": "square", "label": "Square"}, {"value": "portrait", "label": "Portrait 4:5"}]},
+    {"type": "select", "id": "tile_meta", "label": "Tile price line", "default": "variant_mrp", "options": [{"value": "variant_mrp", "label": "Size + struck MRP (bundle-price style)"}, {"value": "price", "label": "Price + compare-at"}]},
+    {"type": "range", "id": "max_per", "label": "Max of the same product per box", "min": 1, "max": 5, "step": 1, "default": 2},
+    {"type": "checkbox", "id": "auto_upgrade", "label": "Auto-upgrade box size when full", "default": true},
+    {"type": "checkbox", "id": "show_save", "label": "Show “Save ₹X” when box is full", "default": true},
+    {"type": "text", "id": "save_label", "label": "Savings label", "default": "Save {amount}"},
+    {"type": "select", "id": "button", "label": "Button action", "default": "cart", "options": [{"value": "cart", "label": "Add to cart (opens cart drawer)"}, {"value": "buy", "label": "Buy now (GoKwik)"}]},
+    {"type": "text", "id": "add_label", "label": "Button label (box full)", "default": "Add box to cart"},
+    {"type": "text", "id": "pick_label", "label": "Button label (box not full)", "default": "Pick {n} more"},
+    {"type": "richtext", "id": "note", "label": "Small print under the builder"},
+    {"type": "text", "id": "vendor", "label": "Vendor sent in uniware_items", "default": "TMC"},
+    {"type": "header", "content": "Spacing"},
+    {"type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 78},
+    {"type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 34},
+    {"type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 104},
+    {"type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 56}
   ],
   "blocks": [
     {
-      "type": "tier",
-      "name": "Box size",
+      "type": "tier", "name": "Box size",
       "settings": [
-        { "type": "range", "id": "items", "label": "Items in box", "min": 1, "max": 10, "step": 1, "default": 3 },
-        { "type": "product", "id": "product", "label": "Bundle parent product", "info": "e.g. “Buy 3 Perfumes at 699”. This variant is the line added to cart." },
-        { "type": "text", "id": "label", "label": "Label", "default": "Any {n}" },
-        { "type": "text", "id": "price", "label": "Display price override (₹)", "info": "Leave blank to use metafield custom.bundle_price, then the variant price" },
-        { "type": "text", "id": "badge", "label": "Badge (optional)", "info": "e.g. Most popular" },
-        { "type": "checkbox", "id": "default", "label": "Selected by default", "default": false }
+        {"type": "range", "id": "items", "label": "Items in box", "min": 1, "max": 10, "step": 1, "default": 3},
+        {"type": "product", "id": "product", "label": "Bundle parent product", "info": "e.g. “Buy 3 Perfumes at 699”. This variant is the line added to cart."},
+        {"type": "text", "id": "label", "label": "Label", "default": "Any {n}"},
+        {"type": "text", "id": "price", "label": "Display price override (₹)", "info": "Leave blank to use metafield custom.bundle_price, then the variant price"},
+        {"type": "text", "id": "badge", "label": "Badge (optional)", "info": "e.g. Most popular"},
+        {"type": "checkbox", "id": "default", "label": "Selected by default", "default": false}
+      ]
+    },
+    {
+      "type": "message", "name": "Message card", "limit": 1,
+      "settings": [
+        {"type": "product", "id": "card_product", "label": "Message card product", "info": "Added as its own line with To / From / Message properties. Its price is the add-on price."},
+        {"type": "text", "id": "title", "label": "Checkbox title", "default": "Add a personalised message"},
+        {"type": "text", "id": "sub", "label": "Checkbox subtext", "default": "Printed card, sealed in an ivory shagun envelope"},
+        {"type": "text", "id": "dlg_title", "label": "Popup heading", "default": "Make it special"},
+        {"type": "text", "id": "dlg_italic", "label": "Popup italic line", "default": "for someone."},
+        {"type": "text", "id": "greeting", "label": "Card greeting", "default": "SHUBH DEEPAVALI"},
+        {"type": "text", "id": "seal", "label": "Envelope seal letter", "default": "M"},
+        {"type": "text", "id": "note", "label": "Popup note", "default": "Gift-wrapped · card sealed in an ivory shagun envelope"},
+        {"type": "range", "id": "max", "label": "Max message length", "min": 60, "max": 300, "step": 10, "default": 150},
+        {"type": "textarea", "id": "quick", "label": "Quick messages", "info": "One per line. The first one pre-fills the message box. Write \\n for a line break inside a message.", "default": "May your Diwali smell as good as you do.\\nWith love.\nLight up, level up. Happy Diwali!\nHere's to a year that smells like success. Shubh Deepavali."}
       ]
     }
   ],
-  "presets": [
-    {
-      "name": "Diwali: Hero + box builder",
-      "blocks": [
-        { "type": "tier", "settings": { "items": 3, "default": true } },
-        { "type": "tier", "settings": { "items": 4 } },
-        { "type": "tier", "settings": { "items": 5 } }
-      ]
-    }
-  ]
+  "presets": [{"name": "Diwali: Box builder", "blocks": [{"type": "tier", "settings": {"items": 3, "default": true}}, {"type": "tier", "settings": {"items": 4}}, {"type": "tier", "settings": {"items": 5}}, {"type": "message"}]}]
 }
 {% endschema %}
