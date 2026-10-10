@@ -1,7 +1,11 @@
-/* Diwali Gifting Store — one module shared by every dw-* section.
-   Loaded with type="module", so the browser runs it once per page no matter how many
-   sections include it. Each section is a custom element, which means it also re-initialises
-   cleanly when the theme editor re-renders a section. No jQuery, no dependencies. */
+/* Diwali Gifting Store — one script shared by every dw-* section.
+   Valid both as a classic script and as a module: speed apps (e.g. Tapita) delay and
+   re-insert script tags, sometimes as classic scripts and sometimes more than once,
+   so there are no exports and a guard makes repeat runs a no-op. Each section is a
+   custom element, so it also re-initialises cleanly in the theme editor. No jQuery. */
+(() => {
+if (window.__dwStore) return;
+window.__dwStore = true;
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -20,7 +24,7 @@ const money = (cents) => nf.format(cents / 100);
 
 /* ---------- toast ---------- */
 let toastEl, toastTimer;
-export function toast(msg) {
+function toast(msg) {
   if (!toastEl) {
     toastEl = document.body.appendChild(document.createElement('div'));
     toastEl.className = 'dw-toast';
@@ -50,7 +54,7 @@ function refreshCart(data) {
 }
 
 /** Adds items to the cart. With buyNow it hands off to GoKwik (same call the flexibox section makes) or falls back to /checkout. */
-export async function addItems(items, { buyNow = false, event } = {}) {
+async function addItems(items, { buyNow = false, event } = {}) {
   if (buyNow && typeof window.onBuyNowClick === 'function') {
     window.onBuyNowClick(event, false, items);
     return;
@@ -563,7 +567,13 @@ class DwSpin extends HTMLElement {
   }
 }
 
-const define = (name, cls) => customElements.get(name) || customElements.define(name, cls);
+// a failure in one section must not stop the rest of the page
+const safe = (cls) => {
+  const cb = cls.prototype.connectedCallback;
+  if (cb) cls.prototype.connectedCallback = function () { try { cb.call(this); } catch (e) { console.error('[dw]', this.localName, e); } };
+  return cls;
+};
+const define = (name, cls) => customElements.get(name) || customElements.define(name, safe(cls));
 define('dw-countdown', DwCountdown);
 define('dw-rotator', DwRotator);
 define('dw-tabs', DwTabs);
@@ -576,3 +586,4 @@ define('dw-spin', DwSpin);
 document.addEventListener('shopify:section:unload', (e) => {
   $$(`.dw-spinb[data-section="${e.detail.sectionId}"]`).forEach((t) => t.remove());
 });
+})();
