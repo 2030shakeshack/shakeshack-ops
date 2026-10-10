@@ -1,0 +1,379 @@
+{%- comment -%}
+  Diwali hero + "Build your Diwali box".
+  Each "Box size" block points at a bundle parent product (e.g. "Buy 3 at 699"). The box is added
+  as ONE line of that product with the flexibox properties (custom_flag, byob, sub_item_N,
+  uniware_items), exactly like sections/flexi-box-multi-steps-product.liquid sends them.
+{%- endcomment -%}
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- liquid
+  assign s = section.settings
+  assign init_m = s.initial_mobile
+  assign init_d = s.initial_desktop
+  assign ratio = '1/1'
+  if s.image_ratio == 'portrait'
+    assign ratio = '4/5'
+  endif
+  assign k = 0
+  assign cats = '|'
+  assign cat_count = 0
+  assign msg_v = s.msg_product.selected_or_first_available_variant
+-%}
+
+{%- capture tiles -%}
+  {%- for p in s.collection.products limit: s.product_limit -%}
+    {%- unless p.available -%}{%- continue -%}{%- endunless -%}
+    {%- liquid
+      assign v = p.selected_or_first_available_variant
+      assign cat = ''
+      if s.chips == 'type'
+        assign cat = p.type
+      elsif s.chips == 'tag'
+        for tag in p.tags
+          if tag contains 'dw_cat_'
+            assign cat = tag | remove_first: 'dw_cat_'
+            break
+          endif
+        endfor
+      endif
+      if cat != blank
+        assign cat_key = '|' | append: cat | append: '|'
+        unless cats contains cat_key
+          assign cats = cats | append: cat | append: '|'
+          assign cat_count = cat_count | plus: 1
+        endunless
+      endif
+    -%}
+    <li class="dw-pt{% if k >= init_m %} x-m{% endif %}{% if k >= init_d %} x-d{% endif %}" data-k="{{ k }}" data-cat="{{ cat | escape }}">
+      <span class="dw-cnt dw-num" hidden></span>
+      <div class="dw-media" style="--dw-ratio:{{ ratio }}">
+        {%- if p.featured_media -%}
+          {{ p.featured_media | image_url: width: 360 | image_tag: loading: 'lazy', widths: '180,270,360', sizes: '(min-width: 1100px) 150px, (min-width: 760px) 18vw, 30vw', alt: p.title }}
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag }}
+        {%- endif -%}
+      </div>
+      <h3>{{ p.title }}</h3>
+      <div class="dw-r">
+        <span class="dw-num">
+          {%- if s.tile_meta == 'variant_mrp' -%}
+            {%- unless p.has_only_default_variant %}{{ v.title }}{% endunless -%}
+            <s>{{ v.compare_at_price | default: v.price | money_without_trailing_zeros }}</s>
+          {%- else -%}
+            {{ v.price | money_without_trailing_zeros }}
+            {%- if v.compare_at_price > v.price %}<s>{{ v.compare_at_price | money_without_trailing_zeros }}</s>{% endif -%}
+          {%- endif -%}
+        </span>
+        <button type="button" data-add aria-label="Add {{ p.title | escape }}">+</button>
+      </div>
+    </li>
+    {%- capture pjson -%}{{ pjson }}{% if k > 0 %},{% endif %}{
+      "sid": "{{ shop.id }}1{{ forloop.index }}",
+      "pid": {{ p.id }}, "v": {{ v.id }},
+      "t": {% capture t %}{{ p.title }}{% unless p.has_only_default_variant %} - {{ v.title }}{% endunless %}{% endcapture %}{{ t | json }},
+      "n": {{ p.title | json }}, "vt": {{ v.title | json }}, "sku": {{ v.sku | json }},
+      "p": {{ v.price | divided_by: 100 }}, "pc": {{ v.price }}, "c": {{ v.compare_at_price | default: 0 }},
+      "img": {{ p.featured_media | image_url: width: 168 | json }},
+      "f": {{ p.featured_media | append: '' | replace: 'files/', '' | json }}
+    }{%- endcapture -%}
+    {%- assign k = k | plus: 1 -%}
+  {%- endfor -%}
+{%- endcapture -%}
+
+{%- capture tjson -%}
+  {%- assign tcount = 0 -%}
+  {%- for block in section.blocks -%}
+    {%- assign bp = block.settings.product -%}
+    {%- if bp == blank -%}{%- continue -%}{%- endif -%}
+    {%- liquid
+      assign bv = bp.selected_or_first_available_variant
+      assign price = bv.price
+      if block.settings.price != blank
+        assign price = block.settings.price | times: 100
+      elsif bp.metafields.custom.bundle_price != blank
+        assign price = bp.metafields.custom.bundle_price | times: 100
+      endif
+    -%}
+    {% if tcount > 0 %},{% endif %}{
+      "n": {{ block.settings.items }}, "v": {{ bv.id }}, "pid": {{ bp.id }}, "sid": "{{ shop.id }}{{ bp.id }}",
+      "title": {{ bp.title | json }}, "vt": {{ bv.title | json }}, "sku": {{ bv.sku | json }},
+      "price": {{ price | round }}, "bp": {{ bv.price | divided_by: 100 }},
+      "avail": {{ bv.available }}, "def": {{ block.settings.default }}
+    }
+    {%- assign tcount = tcount | plus: 1 -%}
+  {%- endfor -%}
+{%- endcapture -%}
+
+<dw-builder
+  class="dw dw-hero{% if s.bg_image %} has-img{% endif %}"
+  id="{{ s.anchor | default: section.id | handleize }}"
+  style="--dw-esp:{{ s.c_bg }};--dw-acc:{{ s.c_acc }};--dw-acc2:{{ s.c_acc2 }};--dw-gold:{{ s.c_gold }};--dw-pt:{{ s.pt }}px;--dw-pb:{{ s.pb }}px;--dw-pt-d:{{ s.pt_d }}px;--dw-pb-d:{{ s.pb_d }}px;--dw-tiers:{{ tcount | at_least: 1 }}{% if s.bg_image %};--dw-hero-img:url({{ s.bg_image | image_url: width: 1800 }}){% endif %}"
+>
+  {%- if s.show_toran -%}
+    <svg class="dw-toran" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 6{% for i in (0..19) %} Q{{ i | times: 20 | plus: 10 }} 20 {{ i | times: 20 | plus: 20 }} 6{% endfor %}" fill="none" stroke="#5a8f3c" stroke-width="3"/>
+      {%- for i in (0..19) -%}<path d="M{{ i | times: 20 | plus: 10 }} 13l-4 5 4 2 4-2z" fill="#4f8a36"/>{%- endfor -%}
+      {%- for i in (1..19) -%}
+        {%- assign odd = i | modulo: 2 -%}
+        {%- if odd == 1 %}{% assign len = 6 %}{% else %}{% assign len = 4 %}{% endif -%}
+        <g class="dw-sway" style="animation-delay:{{ i | modulo: 5 | times: 0.3 }}s">
+          {%- for kk in (1..len) -%}
+            {%- assign alt = kk | modulo: 2 -%}
+            <circle cx="{{ i | times: 20 }}" cy="{{ kk | minus: 1 | times: 9 | plus: 12 }}" r="3.6" fill="{% if alt == 1 %}#e8913c{% else %}#f5b04f{% endif %}"/>
+          {%- endfor -%}
+          <circle cx="{{ i | times: 20 }}" cy="{{ len | times: 9 | plus: 12 }}" r="2" fill="#7fb24f"/>
+        </g>
+      {%- endfor -%}
+    </svg>
+  {%- endif -%}
+
+  <div class="dw-wrap dw-hero-in">
+    <div class="dw-hero-copy">
+      {%- if s.tag != blank %}<span class="dw-tag">{{ s.tag }}</span>{% endif -%}
+      <h1>{{ s.heading }}</h1>
+      {%- if s.subheading != blank %}<p class="dw-hero-sub">{{ s.subheading }}</p>{% endif -%}
+      {%- if s.show_diya -%}
+        <svg class="dw-diya" viewBox="0 0 80 70" aria-hidden="true"><path d="M8 40h64c-3 14-15 22-32 22S11 54 8 40z" fill="#c9a24b"/><path d="M14 46h52" stroke="#8a6a35" stroke-width="1.4" stroke-dasharray="2 3"/><path class="dw-flame" d="M40 8c5 6.5 6.5 12 3.4 17-2 3-4.8 3-6.8 0-3.1-5-1.6-10.5 3.4-17z" fill="#f5b04f"/><path class="dw-flame" d="M40 17c2 3 2.6 5.4 1.3 7.6-.6.9-2 .9-2.6 0-1.3-2.2-.7-4.6 1.3-7.6z" fill="#fff3d6"/></svg>
+      {%- endif -%}
+    </div>
+
+    <div class="dw-bcard">
+      {%- if tcount == 0 or k == 0 -%}
+        <p class="dw-note">Add at least one “Box size” block with a bundle product, and pick a product collection, in the theme editor.</p>
+      {%- else -%}
+        <div class="dw-bc-top"><h2>{{ s.builder_title }}</h2><small class="dw-num" data-picked></small></div>
+
+        <div class="dw-sizes" role="group" aria-label="Box size" data-sizes>
+          {%- assign ti = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.settings.product == blank -%}{%- continue -%}{%- endif -%}
+            {%- liquid
+              assign bv = block.settings.product.selected_or_first_available_variant
+              assign price = bv.price
+              if block.settings.price != blank
+                assign price = block.settings.price | times: 100
+              elsif block.settings.product.metafields.custom.bundle_price != blank
+                assign price = block.settings.product.metafields.custom.bundle_price | times: 100
+              endif
+            -%}
+            <button type="button" data-i="{{ ti }}" aria-pressed="false" {{ block.shopify_attributes }}>
+              {%- if block.settings.badge != blank %}<i>{{ block.settings.badge }}</i>{% endif -%}
+              <b>{{ block.settings.label | replace: '{n}', block.settings.items }}</b>
+              <span class="dw-num">{{ price | round | money_without_trailing_zeros }}</span>
+            </button>
+            {%- assign ti = ti | plus: 1 -%}
+          {%- endfor -%}
+        </div>
+
+        <div class="dw-slots" aria-live="polite" data-slots></div>
+
+        {%- assign cat_list = cats | split: '|' | compact -%}
+        {%- if s.chips != 'none' and cat_count > 1 -%}
+          <div class="dw-chips" role="group" aria-label="Filter products" data-chips>
+            <button type="button" aria-pressed="true" data-cat="">{{ s.chips_all }}</button>
+            {%- for c in cat_list -%}
+              {%- if c != blank %}<button type="button" aria-pressed="false" data-cat="{{ c | escape }}">{{ c }}</button>{% endif -%}
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+
+        <ul class="dw-pgrid" id="DwGrid-{{ section.id }}" data-grid>{{ tiles }}</ul>
+
+        {%- if k > init_m or k > init_d -%}
+          {%- capture more_label -%}{{ s.more_label }}{%- endcapture -%}
+          <button type="button" class="dw-more" aria-expanded="false" aria-controls="DwGrid-{{ section.id }}" data-more data-label="{{ more_label | escape }}" data-less="{{ s.less_label | escape }}">
+            <span>{{ more_label }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        {%- endif -%}
+
+        {%- if s.msg_enable and msg_v -%}
+          <div class="dw-pmsg">
+            <input type="checkbox" id="DwMsg-{{ section.id }}" data-msg-chk>
+            <label for="DwMsg-{{ section.id }}">
+              <b>{{ s.msg_title }}</b> <span class="dw-num">+{{ msg_v.price | money_without_trailing_zeros }}</span>
+              <small data-msg-sub data-default="{{ s.msg_sub | escape }}">{{ s.msg_sub }}</small>
+            </label>
+            <button type="button" class="dw-edit" data-msg-edit hidden>Edit</button>
+          </div>
+        {%- endif -%}
+
+        <div class="dw-bc-foot">
+          <div><small data-total-label>Box total</small><b class="dw-num" data-total></b><em class="dw-num" data-save></em></div>
+          <button type="button" class="dw-btn dw-btn--acc" data-add-box disabled>{{ s.add_label }}</button>
+        </div>
+        {%- if s.note != blank %}<div class="dw-note">{{ s.note }}</div>{% endif -%}
+      {%- endif -%}
+    </div>
+  </div>
+
+  {%- if s.msg_enable and msg_v -%}
+    <dialog class="dw-dlg" aria-labelledby="DwMsgT-{{ section.id }}">
+      <div class="dw-dlg-h">
+        <h2 id="DwMsgT-{{ section.id }}">{{ s.msg_dlg_title }} <i>{{ s.msg_dlg_italic }}</i></h2>
+        <button type="button" class="dw-x" data-dw-close aria-label="Close">✕</button>
+      </div>
+      <div class="dw-env" aria-hidden="true">
+        <div class="dw-letter"><small>{{ s.msg_greeting }}</small><div class="dw-to" data-pv-to></div><div class="dw-msg" data-pv-msg></div></div>
+        <div class="dw-envelope"><svg viewBox="0 0 320 200" preserveAspectRatio="none"><path d="M0 0L160 92 320 0" fill="none" stroke="#cdbb98" stroke-width="2"/></svg><div class="dw-seal">{{ s.msg_seal }}</div><div class="dw-for" data-pv-for></div></div>
+      </div>
+      <p class="dw-sub">{{ s.msg_note }}</p>
+      <div class="dw-two">
+        <div class="dw-fld"><label for="DwTo-{{ section.id }}">To</label><input id="DwTo-{{ section.id }}" name="to" maxlength="24" autocomplete="off"></div>
+        <div class="dw-fld"><label for="DwFrom-{{ section.id }}">From</label><input id="DwFrom-{{ section.id }}" name="from" maxlength="24" autocomplete="name"></div>
+      </div>
+      {%- assign quick = s.msg_quick | newline_to_br | split: '<br />' -%}
+      <div class="dw-fld">
+        <label for="DwText-{{ section.id }}">Your message</label>
+        <textarea id="DwText-{{ section.id }}" name="text" maxlength="{{ s.msg_max }}" rows="3">{{ quick.first | strip | escape | replace: '\n', '&#10;' }}</textarea>
+        <div class="dw-cc dw-num" data-pv-count></div>
+      </div>
+      {%- if s.msg_quick != blank -%}
+        <div class="dw-quick" data-quick>
+          {%- for q in quick -%}
+            {%- assign q = q | strip -%}
+            {%- if q != blank %}<button type="button" data-text="{{ q | escape | replace: '\n', '&#10;' }}">{{ q | replace: '\n', ' ' | truncate: 30 }}</button>{% endif -%}
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+      <div class="dw-dlg-f">
+        <button type="button" class="dw-btn dw-btn--ghost" data-dw-close>Cancel</button>
+        <button type="button" class="dw-btn dw-btn--acc" data-msg-save>Save message · {{ msg_v.price | money_without_trailing_zeros }}</button>
+      </div>
+    </dialog>
+  {%- endif -%}
+
+  <script type="application/json" data-dw-config>
+    {
+      "vendor": {{ s.vendor | json }},
+      "currency": {{ shop.currency | json }},
+      "maxPer": {{ s.max_per }},
+      "autoUpgrade": {{ s.auto_upgrade }},
+      "showSave": {{ s.show_save }},
+      "buyNow": {% if s.button == 'buy' %}true{% else %}false{% endif %},
+      "tiers": [{{ tjson }}],
+      "products": [{{ pjson }}],
+      "msg": {% if s.msg_enable and msg_v %}{ "v": {{ msg_v.id }}, "price": {{ msg_v.price }} }{% else %}null{% endif %},
+      "l": {
+        "picked": {{ s.picked_label | json }},
+        "add": {{ s.add_label | json }},
+        "pick": {{ s.pick_label | json }},
+        "total": "Box total",
+        "totalMsg": "Box total incl. message",
+        "save": {{ s.save_label | json }},
+        "soldOut": "Sold out",
+        "added": "Diwali box of {n} added",
+        "trimmed": "Box trimmed to {n} items",
+        "maxPer": "You've added the maximum of this item",
+        "full": "Your box of {n} is full. Remove one to swap.",
+        "upgraded": "Upgraded to Any {n} · {price}",
+        "someone": "Someone",
+        "dear": "Dear {to},",
+        "msgPh": "Your message appears here.",
+        "msgEmpty": "Write a short message first",
+        "msgAdded": "Message card added",
+        "msgRemoved": "Message card removed"
+      }
+    }
+  </script>
+</dw-builder>
+
+{% schema %}
+{
+  "name": "Diwali: Hero + box builder",
+  "tag": "section",
+  "class": "dw-section",
+  "max_blocks": 6,
+  "settings": [
+    { "type": "text", "id": "anchor", "label": "Anchor ID", "default": "box", "info": "Used by the jump nav, e.g. #box" },
+    { "type": "header", "content": "Hero" },
+    { "type": "text", "id": "tag", "label": "Pill label", "default": "Diwali Gifting Store" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Build your <em>Diwali box</em>", "info": "Italic text is shown in the accent colour" },
+    { "type": "text", "id": "subheading", "label": "Subheading" },
+    { "type": "image_picker", "id": "bg_image", "label": "Background image (optional)" },
+    { "type": "checkbox", "id": "show_toran", "label": "Show toran (marigold garland)", "default": true },
+    { "type": "checkbox", "id": "show_diya", "label": "Show animated diya", "default": true },
+    { "type": "color", "id": "c_bg", "label": "Background", "default": "#281a1b" },
+    { "type": "color", "id": "c_acc", "label": "Accent", "default": "#e8913c" },
+    { "type": "color", "id": "c_acc2", "label": "Accent light", "default": "#f5b04f" },
+    { "type": "color", "id": "c_gold", "label": "Gold", "default": "#c9a24b" },
+
+    { "type": "header", "content": "Builder" },
+    { "type": "text", "id": "builder_title", "label": "Card title", "default": "Fill your box" },
+    { "type": "text", "id": "picked_label", "label": "Progress label", "default": "{x} of {n} picked", "info": "{x} = picked, {n} = box size" },
+    { "type": "collection", "id": "collection", "label": "Products to choose from" },
+    { "type": "range", "id": "product_limit", "label": "Max products loaded", "min": 6, "max": 50, "step": 1, "default": 24 },
+    { "type": "range", "id": "initial_mobile", "label": "Visible before “View more” (mobile)", "min": 3, "max": 24, "step": 3, "default": 6 },
+    { "type": "range", "id": "initial_desktop", "label": "Visible before “View more” (desktop)", "min": 4, "max": 24, "step": 4, "default": 8 },
+    { "type": "text", "id": "more_label", "label": "View more label", "default": "View more products" },
+    { "type": "text", "id": "less_label", "label": "Show less label", "default": "Show less" },
+    { "type": "select", "id": "chips", "label": "Category filter chips", "default": "type",
+      "options": [
+        { "value": "none", "label": "Off" },
+        { "value": "type", "label": "Product type" },
+        { "value": "tag", "label": "Tag prefixed dw_cat_ (e.g. dw_cat_Perfumes)" }
+      ] },
+    { "type": "text", "id": "chips_all", "label": "“All” chip label", "default": "All" },
+    { "type": "select", "id": "image_ratio", "label": "Tile image ratio", "default": "square",
+      "options": [ { "value": "square", "label": "Square" }, { "value": "portrait", "label": "Portrait 4:5" } ] },
+    { "type": "select", "id": "tile_meta", "label": "Tile price line", "default": "variant_mrp",
+      "options": [
+        { "value": "variant_mrp", "label": "Size + struck MRP (bundle-price style)" },
+        { "value": "price", "label": "Price + compare-at" }
+      ] },
+    { "type": "range", "id": "max_per", "label": "Max of the same product per box", "min": 1, "max": 5, "step": 1, "default": 2 },
+    { "type": "checkbox", "id": "auto_upgrade", "label": "Auto-upgrade box size when full", "default": true },
+    { "type": "checkbox", "id": "show_save", "label": "Show “Save ₹X” when box is full", "default": true },
+    { "type": "text", "id": "save_label", "label": "Savings label", "default": "Save {amount}" },
+    { "type": "select", "id": "button", "label": "Button action", "default": "cart",
+      "options": [ { "value": "cart", "label": "Add to cart (opens cart drawer)" }, { "value": "buy", "label": "Buy now (GoKwik)" } ] },
+    { "type": "text", "id": "add_label", "label": "Button label (box full)", "default": "Add box to cart" },
+    { "type": "text", "id": "pick_label", "label": "Button label (box not full)", "default": "Pick {n} more" },
+    { "type": "richtext", "id": "note", "label": "Small print under the builder" },
+    { "type": "text", "id": "vendor", "label": "Vendor sent in uniware_items", "default": "TMC" },
+
+    { "type": "header", "content": "Personalised message card" },
+    { "type": "checkbox", "id": "msg_enable", "label": "Enable", "default": true },
+    { "type": "product", "id": "msg_product", "label": "Message card product", "info": "Added as its own line with To / From / Message properties. Its price is the add-on price." },
+    { "type": "text", "id": "msg_title", "label": "Checkbox title", "default": "Add a personalised message" },
+    { "type": "text", "id": "msg_sub", "label": "Checkbox subtext", "default": "Printed card, sealed in an ivory shagun envelope" },
+    { "type": "text", "id": "msg_dlg_title", "label": "Popup heading", "default": "Make it special" },
+    { "type": "text", "id": "msg_dlg_italic", "label": "Popup italic line", "default": "for someone." },
+    { "type": "text", "id": "msg_greeting", "label": "Card greeting", "default": "SHUBH DEEPAVALI" },
+    { "type": "text", "id": "msg_seal", "label": "Envelope seal letter", "default": "M" },
+    { "type": "text", "id": "msg_note", "label": "Popup note", "default": "Gift-wrapped · card sealed in an ivory shagun envelope" },
+    { "type": "range", "id": "msg_max", "label": "Max message length", "min": 60, "max": 300, "step": 10, "default": 150 },
+    { "type": "textarea", "id": "msg_quick", "label": "Quick messages", "info": "One per line. The first one pre-fills the message box. Write \\n for a line break inside a message.", "default": "May your Diwali smell as good as you do.\\nWith love.\nLight up, level up. Happy Diwali!\nHere's to a year that smells like success. Shubh Deepavali." },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 78 },
+    { "type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 34 },
+    { "type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 104 },
+    { "type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 56 }
+  ],
+  "blocks": [
+    {
+      "type": "tier",
+      "name": "Box size",
+      "settings": [
+        { "type": "range", "id": "items", "label": "Items in box", "min": 1, "max": 10, "step": 1, "default": 3 },
+        { "type": "product", "id": "product", "label": "Bundle parent product", "info": "e.g. “Buy 3 Perfumes at 699”. This variant is the line added to cart." },
+        { "type": "text", "id": "label", "label": "Label", "default": "Any {n}" },
+        { "type": "text", "id": "price", "label": "Display price override (₹)", "info": "Leave blank to use metafield custom.bundle_price, then the variant price" },
+        { "type": "text", "id": "badge", "label": "Badge (optional)", "info": "e.g. Most popular" },
+        { "type": "checkbox", "id": "default", "label": "Selected by default", "default": false }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Diwali: Hero + box builder",
+      "blocks": [
+        { "type": "tier", "settings": { "items": 3, "default": true } },
+        { "type": "tier", "settings": { "items": 4 } },
+        { "type": "tier", "settings": { "items": 5 } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,143 @@
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- assign s = section.settings -%}
+{%- if s.card == 'theme' -%}
+  {%- comment -%} Same assets the home page's Modern Feature Collection loads for this card {%- endcomment -%}
+  {{ 'component-card.css' | asset_url | stylesheet_tag }}
+  {{ 'component-price.css' | asset_url | stylesheet_tag }}
+  {{ 'quick-add.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'product-form.js' | asset_url }}" defer></script>
+  <script src="{{ 'quick-add.js' | asset_url }}" defer></script>
+{%- endif -%}
+
+<dw-tabs
+  class="dw dw-sets"
+  id="{{ s.anchor | default: section.id | handleize }}"
+  style="--dw-esp:{{ s.c_acc }};--dw-acc:{{ s.c_badge }};--dw-sec-bg:{{ s.c_bg }};--dw-cols-m:{{ s.cols_m }};--dw-cols-d:{{ s.cols_d }};--dw-pt:{{ s.pt }}px;--dw-pb:{{ s.pb }}px;--dw-pt-d:{{ s.pt_d }}px;--dw-pb-d:{{ s.pb_d }}px"
+>
+  <div class="dw-wrap">
+    <div class="dw-sh"><div><h2>{{ s.heading }}</h2>{% if s.sub != blank %}<p>{{ s.sub }}</p>{% endif %}</div></div>
+
+    {%- if section.blocks.size > 1 -%}
+      <div class="dw-tabs" role="tablist" aria-label="{{ s.heading | strip_html | escape }}">
+        {%- for block in section.blocks -%}
+          <button type="button" role="tab" id="DwTab-{{ block.id }}" aria-controls="DwPanel-{{ block.id }}" aria-selected="{{ forloop.first }}" {{ block.shopify_attributes }}>{{ block.settings.label }}</button>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    {%- for block in section.blocks -%}
+      {%- liquid
+        assign b = block.settings
+        assign list = b.collection.products
+        if b.products != blank
+          assign list = b.products
+        endif
+      -%}
+      <ul class="dw-sgrid" id="DwPanel-{{ block.id }}"{% if section.blocks.size > 1 %} role="tabpanel" aria-labelledby="DwTab-{{ block.id }}"{% endif %}{% unless forloop.first %} hidden{% endunless %}>
+        {%- assign shown = 0 -%}
+        {%- for p in list -%}
+          {%- if shown >= b.limit -%}{%- break -%}{%- endif -%}
+          {%- if s.only_available and p.available == false -%}{%- continue -%}{%- endif -%}
+          {%- assign shown = shown | plus: 1 -%}
+          <li>
+            {%- if s.card == 'theme' -%}
+              {% render 'card-product-modern',
+                card_product: p,
+                media_aspect_ratio: 'adapt',
+                lazy_load: true,
+                show_rating: s.show_rating,
+                skip_styles: true,
+                section_id: section.id,
+                quick_add: 'standard'
+              %}
+            {%- else -%}
+              {%- assign v = p.selected_or_first_available_variant -%}
+              <article class="dw-gs">
+                {%- if v.compare_at_price > v.price -%}
+                  <span class="dw-bdg dw-num">{{ v.compare_at_price | minus: v.price | times: 100 | divided_by: v.compare_at_price }}% off</span>
+                {%- endif -%}
+                <a class="dw-media" href="{{ p.url }}" aria-label="{{ p.title | escape }}">
+                  {%- if p.featured_media -%}
+                    {{ p.featured_media | image_url: width: 600 | image_tag: loading: 'lazy', widths: '240,360,480,600', sizes: '(min-width: 760px) 25vw, 50vw', alt: p.title }}
+                  {%- endif -%}
+                </a>
+                <h3><a href="{{ p.url }}">{{ p.title }}</a></h3>
+                {%- assign short = p.metafields.custom.product_card_short_des_ti.value | default: p.metafields.my_fields.product_meta_secondary_text -%}
+                {%- if short != blank %}<p>{{ short }}</p>{% endif -%}
+                <div class="dw-pr dw-num"><b>{{ v.price | money_without_trailing_zeros }}</b>{% if v.compare_at_price > v.price %}<s>{{ v.compare_at_price | money_without_trailing_zeros }}</s>{% endif %}</div>
+                {%- if p.has_only_default_variant == false -%}
+                  <a class="dw-btn" href="{{ p.url }}">Choose options</a>
+                {%- elsif v.available -%}
+                  <button type="button" class="dw-btn" data-dw-add='[{"id":{{ v.id }},"quantity":1}]' data-dw-toast="{{ p.title | escape }} added">{{ s.button_label }}</button>
+                {%- else -%}
+                  <button type="button" class="dw-btn" disabled>Sold out</button>
+                {%- endif -%}
+              </article>
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- endfor -%}
+
+    {%- if s.view_all_link != blank -%}
+      <p style="text-align:center;margin:18px 0 0"><a class="dw-btn dw-btn--ghost" href="{{ s.view_all_link }}">{{ s.view_all_label }}</a></p>
+    {%- endif -%}
+  </div>
+</dw-tabs>
+
+{% schema %}
+{
+  "name": "Diwali: Gift sets",
+  "tag": "section",
+  "class": "dw-section",
+  "max_blocks": 6,
+  "settings": [
+    { "type": "text", "id": "anchor", "label": "Anchor ID", "default": "sets" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Super Saving <em>Gift Sets</em>" },
+    { "type": "text", "id": "sub", "label": "Subheading", "default": "Ready-made, gift-wrapped, up to 50% off" },
+    { "type": "select", "id": "card", "label": "Card style", "default": "theme",
+      "options": [
+        { "value": "theme", "label": "Theme card (same as home page)" },
+        { "value": "diwali", "label": "Diwali card" }
+      ] },
+    { "type": "checkbox", "id": "show_rating", "label": "Show rating (theme card)", "default": true },
+    { "type": "checkbox", "id": "only_available", "label": "Hide sold-out products", "default": true },
+    { "type": "text", "id": "button_label", "label": "Button label (Diwali card)", "default": "Add to cart" },
+    { "type": "select", "id": "cols_m", "label": "Columns (mobile)", "default": "2",
+      "options": [ { "value": "1", "label": "1" }, { "value": "2", "label": "2" } ] },
+    { "type": "range", "id": "cols_d", "label": "Columns (desktop)", "min": 2, "max": 6, "step": 1, "default": 4 },
+    { "type": "url", "id": "view_all_link", "label": "View all link" },
+    { "type": "text", "id": "view_all_label", "label": "View all label", "default": "View all gift sets" },
+    { "type": "header", "content": "Colours & spacing" },
+    { "type": "color", "id": "c_bg", "label": "Background", "default": "#ffffff" },
+    { "type": "color", "id": "c_acc", "label": "Active tab & buttons", "default": "#281a1b" },
+    { "type": "color", "id": "c_badge", "label": "Badge / heading accent", "default": "#e8913c" },
+    { "type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 30 },
+    { "type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 30 },
+    { "type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 48 },
+    { "type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 48 }
+  ],
+  "blocks": [
+    {
+      "type": "tab",
+      "name": "Tab",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Tab label", "default": "Perfume" },
+        { "type": "collection", "id": "collection", "label": "Collection" },
+        { "type": "product_list", "id": "products", "label": "Or hand-pick products", "limit": 12, "info": "Overrides the collection when set" },
+        { "type": "range", "id": "limit", "label": "Products to show", "min": 2, "max": 12, "step": 1, "default": 4 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Diwali: Gift sets",
+      "blocks": [
+        { "type": "tab", "settings": { "label": "Perfume" } },
+        { "type": "tab", "settings": { "label": "Skincare" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

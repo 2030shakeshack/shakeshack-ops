@@ -1,0 +1,45 @@
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- assign s = section.settings -%}
+<dw-rotator class="dw dw-ann" aria-live="polite" data-interval="{{ s.interval }}" style="--dw-esp:{{ s.c_bg }};--dw-on:{{ s.c_text }};--dw-acc2:{{ s.c_hl }}">
+  {%- for block in section.blocks -%}
+    <p class="{% if forloop.first %}is-on{% endif %}" {{ block.shopify_attributes }}>
+      {%- if block.settings.link != blank %}<a href="{{ block.settings.link }}">{{ block.settings.text }}</a>{% else %}{{ block.settings.text }}{% endif -%}
+    </p>
+  {%- endfor -%}
+</dw-rotator>
+
+{% schema %}
+{
+  "name": "Diwali: Announcement",
+  "tag": "div",
+  "class": "dw-section",
+  "max_blocks": 8,
+  "settings": [
+    { "type": "range", "id": "interval", "label": "Seconds per message", "min": 2, "max": 10, "step": 0.5, "default": 3.5 },
+    { "type": "color", "id": "c_bg", "label": "Background", "default": "#281a1b" },
+    { "type": "color", "id": "c_text", "label": "Text", "default": "#ffffff" },
+    { "type": "color", "id": "c_hl", "label": "Bold text", "default": "#f5b04f" }
+  ],
+  "blocks": [
+    {
+      "type": "message",
+      "name": "Message",
+      "settings": [
+        { "type": "inline_richtext", "id": "text", "label": "Text", "default": "Build any <strong>3 for ₹699</strong> · this Diwali", "info": "Bold text uses the highlight colour" },
+        { "type": "url", "id": "link", "label": "Link" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Diwali: Announcement",
+      "blocks": [
+        { "type": "message", "settings": { "text": "Build any <strong>3 for ₹699</strong> · this Diwali" } },
+        { "type": "message", "settings": { "text": "<strong>Patakha deals</strong> drop every few hours" } },
+        { "type": "message", "settings": { "text": "Buy the bundle, get <strong>100% cashback</strong>" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,75 @@
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- assign s = section.settings -%}
+<dw-jump-nav class="dw dw-jn" style="--dw-sec-bg:{{ s.c_bg }};--dw-esp:{{ s.c_active }};--dw-pt:{{ s.pt }}px;--dw-pb:{{ s.pb }}px">
+  <div class="dw-wrap">
+    <nav aria-label="{{ s.aria | escape }}">
+      {%- for block in section.blocks -%}
+        {%- assign b = block.settings -%}
+        <a href="#{{ b.target | remove: '#' | handleize }}"{% if forloop.first %} class="is-on"{% endif %} {{ block.shopify_attributes }}>
+          {%- if b.hot %}<span class="dw-hot" aria-hidden="true"></span>{% endif -%}
+          {%- case b.icon -%}
+            {%- when 'box' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-4 9 4v9l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v9"/></svg>
+            {%- when 'deals' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 21l3-9M11 12l5 2-3 7"/><path d="M14 6l1.5-3M18 8l3-1.5M17.5 4.5l1.5-1.5"/><path d="M11 12l1.2-3.5a2 2 0 0 1 3.7 1.4L16 14"/></svg>
+            {%- when 'gift' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M2.5 9h19M12 9v12M12 9c-2-4.5-6.5-4.5-6.5-1.5S9 9 12 9zm0 0c2-4.5 6.5-4.5 6.5-1.5S15 9 12 9z"/></svg>
+            {%- when 'cashback' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 11h6M13 8c1.7 0 2.5 1.5 0 3h-4l5 5"/></svg>
+            {%- when 'spin' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v7M12 14v7M3 12h7M14 12h7M5.6 5.6l5 5M13.4 13.4l5 5M18.4 5.6l-5 5M10.6 13.4l-5 5"/></svg>
+            {%- when 'corporate' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 12h18"/></svg>
+            {%- when 'star' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>
+          {%- endcase -%}
+          {{ b.label }}
+        </a>
+      {%- endfor -%}
+    </nav>
+  </div>
+</dw-jump-nav>
+{%- comment -%} The Shopify section wrapper is what sticks: the nav alone is as tall as its wrapper, so sticking it inside would do nothing. {%- endcomment -%}
+<style>html{scroll-padding-top:{{ s.sticky_m | plus: 70 }}px}@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}#shopify-section-{{ section.id }}{position:sticky;top:{{ s.sticky_m }}px;z-index:39}{% if s.sticky_d != s.sticky_m %}@media (min-width:760px){html{scroll-padding-top:{{ s.sticky_d | plus: 74 }}px}#shopify-section-{{ section.id }}{top:{{ s.sticky_d }}px}}{% endif %}</style>
+
+{% schema %}
+{
+  "name": "Diwali: Jump nav",
+  "tag": "div",
+  "class": "dw-section",
+  "max_blocks": 10,
+  "settings": [
+    { "type": "text", "id": "aria", "label": "Accessible label", "default": "Jump to section" },
+    { "type": "range", "id": "sticky_m", "label": "Sticky offset from top (mobile)", "info": "Set to your header height so the bar sits under it", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 58 },
+    { "type": "range", "id": "sticky_d", "label": "Sticky offset from top (desktop)", "min": 0, "max": 200, "step": 2, "unit": "px", "default": 80 },
+    { "type": "color", "id": "c_bg", "label": "Fade background", "default": "#ffffff" },
+    { "type": "color", "id": "c_active", "label": "Active tab", "default": "#281a1b" },
+    { "type": "range", "id": "pt", "label": "Top padding", "min": 0, "max": 40, "step": 2, "unit": "px", "default": 10 },
+    { "type": "range", "id": "pb", "label": "Bottom padding", "min": 0, "max": 40, "step": 2, "unit": "px", "default": 10 }
+  ],
+  "blocks": [
+    {
+      "type": "link",
+      "name": "Link",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Label", "default": "Diwali Box" },
+        { "type": "text", "id": "target", "label": "Section anchor ID", "default": "box", "info": "Matches the “Anchor ID” setting of the section to jump to" },
+        { "type": "select", "id": "icon", "label": "Icon", "default": "box",
+          "options": [
+            { "value": "none", "label": "None" }, { "value": "box", "label": "Box" }, { "value": "deals", "label": "Firecracker" },
+            { "value": "gift", "label": "Gift" }, { "value": "cashback", "label": "Rupee" }, { "value": "spin", "label": "Wheel" },
+            { "value": "corporate", "label": "Briefcase" }, { "value": "star", "label": "Star" }
+          ] },
+        { "type": "checkbox", "id": "hot", "label": "Show red “live” dot", "default": false }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Diwali: Jump nav",
+      "blocks": [
+        { "type": "link", "settings": { "label": "Diwali Box", "target": "box", "icon": "box" } },
+        { "type": "link", "settings": { "label": "Patakha Deals", "target": "deals", "icon": "deals", "hot": true } },
+        { "type": "link", "settings": { "label": "Gift Sets", "target": "sets", "icon": "gift" } },
+        { "type": "link", "settings": { "label": "100% Cashback", "target": "cashback", "icon": "cashback" } },
+        { "type": "link", "settings": { "label": "Spin the Rangoli", "target": "spin", "icon": "spin" } },
+        { "type": "link", "settings": { "label": "Corporate Gifting", "target": "corporate", "icon": "corporate" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

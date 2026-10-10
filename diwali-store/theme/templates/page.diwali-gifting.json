@@ -1,0 +1,102 @@
+{
+  "sections": {
+    "announcement": {
+      "type": "dw-announcement",
+      "blocks": {
+        "m1": { "type": "message", "settings": { "text": "Build any <strong>3 for ₹699</strong> · this Diwali" } },
+        "m2": { "type": "message", "settings": { "text": "<strong>Patakha deals</strong> drop every few hours" } },
+        "m3": { "type": "message", "settings": { "text": "Buy the bundle, get <strong>100% cashback</strong>" } }
+      },
+      "block_order": ["m1", "m2", "m3"],
+      "settings": { "interval": 3.5 }
+    },
+    "hero": {
+      "type": "dw-hero-builder",
+      "blocks": {
+        "t3": { "type": "tier", "settings": { "items": 3, "product": "diwali-box-any-3", "label": "Any {n}", "default": true } },
+        "t4": { "type": "tier", "settings": { "items": 4, "product": "diwali-box-any-4", "label": "Any {n}", "badge": "Popular" } },
+        "t5": { "type": "tier", "settings": { "items": 5, "product": "diwali-box-any-5", "label": "Any {n}", "badge": "Best value" } }
+      },
+      "block_order": ["t3", "t4", "t5"],
+      "settings": {
+        "anchor": "box",
+        "tag": "Diwali Gifting Store",
+        "heading": "Build your <em>Diwali box</em>",
+        "collection": "bestsellers",
+        "product_limit": 24,
+        "initial_mobile": 6,
+        "initial_desktop": 8,
+        "chips": "type",
+        "max_per": 2,
+        "msg_enable": true,
+        "msg_product": "diwali-message-card",
+        "vendor": "TMC"
+      }
+    },
+    "jump": {
+      "type": "dw-jump-nav",
+      "blocks": {
+        "l1": { "type": "link", "settings": { "label": "Diwali Box", "target": "box", "icon": "box" } },
+        "l2": { "type": "link", "settings": { "label": "Patakha Deals", "target": "deals", "icon": "deals", "hot": true } },
+        "l3": { "type": "link", "settings": { "label": "Gift Sets", "target": "sets", "icon": "gift" } },
+        "l4": { "type": "link", "settings": { "label": "100% Cashback", "target": "cashback", "icon": "cashback" } },
+        "l5": { "type": "link", "settings": { "label": "Spin the Rangoli", "target": "spin", "icon": "spin" } },
+        "l6": { "type": "link", "settings": { "label": "Corporate Gifting", "target": "corporate", "icon": "corporate" } }
+      },
+      "block_order": ["l1", "l2", "l3", "l4", "l5", "l6"],
+      "settings": { "sticky_m": 58, "sticky_d": 80 }
+    },
+    "usp": {
+      "type": "dw-usp",
+      "blocks": {
+        "u1": { "type": "item", "settings": { "icon": "gift", "title": "Free gift wrap", "text": "on every box" } },
+        "u2": { "type": "item", "settings": { "icon": "truck", "title": "Ships in 24 hrs", "text": "before Diwali" } },
+        "u3": { "type": "item", "settings": { "icon": "star", "title": "4.5★ rated", "text": "by 1M+ men" } }
+      },
+      "block_order": ["u1", "u2", "u3"],
+      "settings": {}
+    },
+    "deals": {
+      "type": "dw-deals",
+      "blocks": {
+        "d1": { "type": "deal", "settings": { "product": "amber-and-oud-house-amber-bergamot-783", "label": "Deal {n} · live", "ends": "2026-10-20 23:59", "left": "23", "total": "150" } },
+        "d2": { "type": "deal", "settings": { "product": "ember-and-ash-parfums-amber-cedar-795", "label": "Deal {n} · live", "ends": "2026-10-22 23:59", "left": "41", "total": "200" } },
+        "d3": { "type": "deal", "settings": { "product": "nordlys-scent-co-amber-cedar-extreme-211", "label": "Deal {n} · live", "ends": "2026-10-25 23:59", "left": "12", "total": "120" } },
+        "n1": { "type": "next", "settings": { "title": "Mystery Patakha", "ends": "2026-10-20 18:00" } }
+      },
+      "block_order": ["d1", "d2", "d3", "n1"],
+      "settings": { "anchor": "deals", "tz": "+05:30" }
+    },
+    "sets": {
+      "type": "dw-gift-sets",
+      "blocks": {
+        "s1": { "type": "tab", "settings": { "label": "Perfume", "collection": "gift-sets-travel-minis-limited-edition", "limit": 4 } },
+        "s2": { "type": "tab", "settings": { "label": "Home & Candles", "collection": "gift-sets-home-candles", "limit": 4 } }
+      },
+      "block_order": ["s1", "s2"],
+      "settings": { "anchor": "sets", "card": "theme" }
+    },
+    "cashback": {
+      "type": "dw-cashback",
+      "settings": { "anchor": "cashback", "product": "noctis-fragrances-amber-ember-no-5-598", "title": "The Diwali Mega Bundle" }
+    },
+    "spin": {
+      "type": "dw-spin",
+      "blocks": {
+        "w1": { "type": "slice", "settings": { "label": "10% OFF", "prize_id": "off10", "fill": "#281a1b", "color": "#f7dfbd", "weight": 30, "code": "DIWALI10" } },
+        "w2": { "type": "slice", "settings": { "label": "FREE SHIPPING", "prize_id": "freeship", "fill": "#fbf4e8", "color": "#281a1b", "weight": 25, "code": "FREESHIP" } },
+        "w3": { "type": "slice", "settings": { "label": "₹100 OFF", "prize_id": "flat100", "fill": "#e8913c", "color": "#281a1b", "weight": 20, "code": "PATAKHA100" } },
+        "w4": { "type": "slice", "settings": { "label": "15% OFF", "prize_id": "off15", "fill": "#fbf4e8", "color": "#281a1b", "weight": 12, "code": "DIWALI15" } },
+        "w5": { "type": "slice", "settings": { "label": "₹150 OFF", "prize_id": "flat150", "fill": "#281a1b", "color": "#f7dfbd", "weight": 8, "code": "RANGOLI150" } },
+        "w6": { "type": "slice", "settings": { "label": "20% OFF", "prize_id": "off20", "fill": "#f7dfbd", "color": "#281a1b", "weight": 5, "code": "DIWALI20" } }
+      },
+      "block_order": ["w1", "w2", "w3", "w4", "w5", "w6"],
+      "settings": { "anchor": "spin", "mode": "static", "lead": "phone" }
+    },
+    "corporate": {
+      "type": "dw-corporate",
+      "settings": { "anchor": "corporate", "action": "form" }
+    }
+  },
+  "order": ["announcement", "hero", "jump", "usp", "deals", "sets", "cashback", "spin", "corporate"]
+}

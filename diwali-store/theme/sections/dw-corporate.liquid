@@ -1,0 +1,91 @@
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- assign s = section.settings -%}
+<section
+  class="dw dw-corp"
+  id="{{ s.anchor | default: section.id | handleize }}"
+  style="--dw-sec-bg:{{ s.c_bg }};--dw-esp:{{ s.c_icon }};--dw-soft:{{ s.c_card }};--dw-pt:{{ s.pt }}px;--dw-pb:{{ s.pb }}px;--dw-pt-d:{{ s.pt_d }}px;--dw-pb-d:{{ s.pb_d }}px"
+>
+  <div class="dw-wrap">
+    {%- capture card_inner -%}
+      <div class="dw-ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 12h18"/></svg></div>
+      <div><b>{{ s.title }}</b><span>{{ s.text }}</span></div>
+      <svg class="dw-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    {%- endcapture -%}
+
+    {%- if s.action == 'form' -%}
+      <button type="button" class="dw-corp-card" data-dw-open="#DwCorp-{{ section.id }}">{{ card_inner }}</button>
+      <dialog class="dw-dlg" id="DwCorp-{{ section.id }}" aria-labelledby="DwCorpT-{{ section.id }}">
+        <div class="dw-dlg-h">
+          <h2 id="DwCorpT-{{ section.id }}" style="font-size:22px">{{ s.form_title }}</h2>
+          <button type="button" class="dw-x" data-dw-close aria-label="Close">✕</button>
+        </div>
+        {%- assign form_id = 'DwCorpForm-' | append: section.id -%}
+        {%- form 'contact', id: form_id -%}
+          <input type="hidden" name="contact[source]" value="{{ s.form_tag | escape }}">
+          {%- if form.posted_successfully? or form.errors -%}
+            {%- if form.posted_successfully? -%}
+              <p class="dw-ok" role="status">{{ s.success }}</p>
+            {%- else -%}
+              <div class="dw-err" role="alert">{{ form.errors | default_errors }}</div>
+            {%- endif -%}
+            {%- comment -%} reopen the dialog after the post-submit reload {%- endcomment -%}
+            <script>addEventListener('DOMContentLoaded',()=>document.getElementById('DwCorp-{{ section.id }}').showModal())</script>
+          {%- endif -%}
+          <p class="dw-note" style="margin-bottom:12px">{{ s.form_text }}</p>
+          <div class="dw-two">
+            <div class="dw-fld"><label for="DwCN-{{ section.id }}">Name</label><input id="DwCN-{{ section.id }}" name="contact[name]" autocomplete="name" required></div>
+            <div class="dw-fld"><label for="DwCC-{{ section.id }}">Company</label><input id="DwCC-{{ section.id }}" name="contact[company]" autocomplete="organization"></div>
+          </div>
+          <div class="dw-two">
+            <div class="dw-fld"><label for="DwCE-{{ section.id }}">Work email</label><input id="DwCE-{{ section.id }}" name="contact[email]" type="email" autocomplete="email" required></div>
+            <div class="dw-fld"><label for="DwCP-{{ section.id }}">Phone</label><input id="DwCP-{{ section.id }}" name="contact[phone]" type="tel" autocomplete="tel"></div>
+          </div>
+          <div class="dw-fld">
+            <label for="DwCQ-{{ section.id }}">Quantity</label>
+            <select id="DwCQ-{{ section.id }}" name="contact[quantity]">
+              {%- assign qtys = s.qty_options | split: ',' -%}
+              {%- for q in qtys %}<option>{{ q | strip }}</option>{% endfor -%}
+            </select>
+          </div>
+          <div class="dw-fld"><label for="DwCM-{{ section.id }}">Anything else?</label><textarea id="DwCM-{{ section.id }}" name="contact[body]" rows="3"></textarea></div>
+          <button type="submit" class="dw-btn" style="width:100%">{{ s.submit_label }}</button>
+        {%- endform -%}
+      </dialog>
+    {%- else -%}
+      <a class="dw-corp-card" href="{{ s.link | default: '#' }}">{{ card_inner }}</a>
+    {%- endif -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Diwali: Corporate gifting",
+  "tag": "div",
+  "class": "dw-section",
+  "settings": [
+    { "type": "text", "id": "anchor", "label": "Anchor ID", "default": "corporate" },
+    { "type": "text", "id": "title", "label": "Title", "default": "Corporate gifting" },
+    { "type": "text", "id": "text", "label": "Text", "default": "Bulk Diwali boxes for teams & clients, from 25 units" },
+    { "type": "select", "id": "action", "label": "On tap", "default": "form",
+      "options": [ { "value": "form", "label": "Open enquiry form (Shopify contact form)" }, { "value": "link", "label": "Go to a link" } ] },
+    { "type": "url", "id": "link", "label": "Link" },
+    { "type": "header", "content": "Enquiry form" },
+    { "type": "text", "id": "form_title", "label": "Form title", "default": "Corporate Diwali gifting" },
+    { "type": "text", "id": "form_text", "label": "Form intro", "default": "Tell us what you need and our gifting team will get back within a working day." },
+    { "type": "text", "id": "qty_options", "label": "Quantity options", "default": "25–50, 51–100, 101–500, 500+", "info": "Comma separated" },
+    { "type": "text", "id": "form_tag", "label": "Source tag sent with the enquiry", "default": "Diwali corporate gifting" },
+    { "type": "text", "id": "submit_label", "label": "Submit label", "default": "Send enquiry" },
+    { "type": "text", "id": "success", "label": "Success message", "default": "Thanks! Our gifting team will reach out shortly." },
+    { "type": "header", "content": "Colours & spacing" },
+    { "type": "color", "id": "c_bg", "label": "Background", "default": "#ffffff" },
+    { "type": "color", "id": "c_card", "label": "Card background", "default": "#f7f3ee" },
+    { "type": "color", "id": "c_icon", "label": "Icon tile", "default": "#281a1b" },
+    { "type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 6 },
+    { "type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 30 },
+    { "type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 12 },
+    { "type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 48 }
+  ],
+  "presets": [ { "name": "Diwali: Corporate gifting" } ]
+}
+{% endschema %}

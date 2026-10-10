@@ -1,0 +1,234 @@
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- liquid
+  assign s = section.settings
+  assign now = 'now' | date: '%s' | plus: 0
+  assign gift_v = s.gift_product.selected_or_first_available_variant
+  assign deal_no = 0
+-%}
+<dw-deals
+  class="dw dw-deals"
+  id="{{ s.anchor | default: section.id | handleize }}"
+  style="--dw-esp:{{ s.c_bg }};--dw-acc:{{ s.c_acc }};--dw-acc2:{{ s.c_acc2 }};--dw-sec-bg:{{ s.c_bg }};--dw-pt:{{ s.pt }}px;--dw-pb:{{ s.pb }}px;--dw-pt-d:{{ s.pt_d }}px;--dw-pb-d:{{ s.pb_d }}px"
+>
+  {%- if s.show_lights -%}
+    <div class="dw-lights" aria-hidden="true">
+      <svg viewBox="0 0 400 18" preserveAspectRatio="none">
+        <path d="M0 3Q50 10 100 3T200 3T300 3T400 3" fill="none" stroke="#6b5455" stroke-width="1"/>
+        {%- assign cols = '#f5b04f,#e8913c,#fff3d6,#c9a24b' | split: ',' -%}
+        {%- for i in (0..23) -%}
+          {%- assign c = i | modulo: 4 -%}{%- assign up = i | modulo: 2 -%}
+          <circle class="dw-bulb" cx="{{ i | times: 16.4 | plus: 8 }}" cy="{% if up == 1 %}8.4{% else %}5.8{% endif %}" r="3" fill="{{ cols[c] }}" style="animation-delay:{{ c | times: 0.6 }}s"/>
+        {%- endfor -%}
+      </svg>
+    </div>
+  {%- endif -%}
+
+  <div class="dw-wrap">
+    <div class="dw-sh"><div><h2>{{ s.heading }}</h2>{% if s.sub != blank %}<p>{{ s.sub }}</p>{% endif %}</div></div>
+
+    {%- if s.fg_show -%}
+      {%- liquid
+        assign fg_left = s.fg_left | plus: 0
+        assign fg_total = s.fg_total | plus: 0
+        assign fg_pct = 0
+        if fg_total > 0
+          assign fg_pct = fg_total | minus: fg_left | times: 100 | divided_by: fg_total
+        endif
+      -%}
+      <div class="dw-fg">
+        <div class="dw-gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M2.5 9h19M12 9v12M12 9c-2-4.5-6.5-4.5-6.5-1.5S9 9 12 9zm0 0c2-4.5 6.5-4.5 6.5-1.5S15 9 12 9z"/></svg></div>
+        <div>
+          <h3>{{ s.fg_title }}</h3>
+          {%- if s.fg_text != blank %}<p>{{ s.fg_text }}</p>{% endif -%}
+          {%- if fg_total > 0 -%}
+            <div class="dw-bar"><i style="width:{{ fg_pct }}%"></i></div>
+            {%- assign left_html = '<b class="dw-num">' | append: fg_left | append: '</b>' -%}
+            <small>{{ s.fg_counter | replace: '{left}', left_html | replace: '{total}', fg_total }}</small>
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <div class="dw-rail">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign b = block.settings
+          assign iso = b.ends | strip | replace: ' ', 'T'
+          if iso.size == 16
+            assign iso = iso | append: ':00'
+          endif
+          if iso != blank
+            assign iso = iso | append: s.tz
+            assign end_ts = iso | date: '%s' | plus: 0
+          else
+            assign end_ts = 0
+          endif
+          assign ended = false
+          if end_ts > 0 and end_ts < now
+            assign ended = true
+          endif
+          if ended and s.ended == 'hide'
+            continue
+          endif
+        -%}
+
+        {%- if block.type == 'deal' -%}
+          {%- assign p = b.product -%}
+          {%- if p == blank -%}{%- continue -%}{%- endif -%}
+          {%- liquid
+            assign v = p.selected_or_first_available_variant
+            assign deal_no = deal_no | plus: 1
+            assign left = b.left | plus: 0
+            if b.left == blank and v.inventory_management == 'shopify'
+              assign left = v.inventory_quantity
+            endif
+            assign total = b.total | plus: 0
+            assign gift_prop = s.gift_prop | json
+            capture items
+              echo '[{"id":' | append: v.id | append: ',"quantity":1}'
+              if gift_v
+                echo ',{"id":' | append: gift_v.id | append: ',"quantity":1,"properties":{"_free_gift":' | append: gift_prop | append: '}}'
+              endif
+              echo ']'
+            endcapture
+          -%}
+          <article class="dw-dl{% if ended %} is-ended{% endif %}" data-ended-text="{{ s.ended_label | escape }}" {{ block.shopify_attributes }}>
+            <a class="dw-media" href="{{ p.url }}" aria-label="{{ p.title | escape }}">
+              {%- if b.image -%}
+                {{ b.image | image_url: width: 400 | image_tag: loading: 'lazy', widths: '200,300,400', sizes: '(min-width: 1100px) 280px, 96px', alt: p.title }}
+              {%- elsif p.featured_media -%}
+                {{ p.featured_media | image_url: width: 400 | image_tag: loading: 'lazy', widths: '200,300,400', sizes: '(min-width: 1100px) 280px, 96px', alt: p.title }}
+              {%- endif -%}
+            </a>
+            <div>
+              <div class="dw-k">{{ b.label | replace: '{n}', deal_no }}</div>
+              <h3><a href="{{ p.url }}">{{ b.title | default: p.title }}</a></h3>
+              <div class="dw-pr dw-num">
+                <b>{{ v.price | money_without_trailing_zeros }}</b>
+                {%- if v.compare_at_price > v.price -%}
+                  <s>{{ v.compare_at_price | money_without_trailing_zeros }}</s>
+                  <em>{{ v.compare_at_price | minus: v.price | times: 100 | divided_by: v.compare_at_price }}% off</em>
+                {%- endif -%}
+              </div>
+              {%- if end_ts > 0 -%}
+                <div class="dw-tm">{{ s.ends_label }} <b><dw-countdown class="dw-num" data-end="{{ iso }}">--:--:--</dw-countdown></b></div>
+              {%- endif -%}
+              {%- if total > 0 and left > 0 -%}
+                <div class="dw-bar"><i style="width:{{ total | minus: left | times: 100 | divided_by: total | at_least: 0 }}%"></i></div>
+              {%- endif -%}
+              {%- if left > 0 and left <= s.low_stock -%}
+                <div class="dw-left dw-num">{{ s.left_label | replace: '{n}', left }}</div>
+              {%- endif -%}
+              {%- if ended -%}
+                <button type="button" class="dw-btn dw-btn--acc" disabled>{{ s.ended_label }}</button>
+              {%- elsif v.available -%}
+                <button type="button" class="dw-btn dw-btn--acc" data-dw-add="{{ items | escape }}"{% if s.button == 'buy' %} data-dw-buy="true"{% endif %} data-dw-toast="{{ s.toast | escape }}">{{ s.button_label }}</button>
+              {%- else -%}
+                <button type="button" class="dw-btn dw-btn--acc" disabled>{{ s.sold_out_label }}</button>
+              {%- endif -%}
+            </div>
+          </article>
+
+        {%- elsif block.type == 'next' -%}
+          <article class="dw-dl is-next" data-live-text="{{ b.live_label | escape }}" {{ block.shopify_attributes }}>
+            <div class="dw-media">
+              {%- if b.image %}{{ b.image | image_url: width: 400 | image_tag: loading: 'lazy', widths: '200,400', sizes: '(min-width: 1100px) 280px, 96px', alt: '' }}{% endif -%}
+            </div>
+            <div>
+              <div class="dw-k">{{ b.label }}</div>
+              <h3>{{ b.title }}</h3>
+              {%- if end_ts > 0 -%}
+                <div class="dw-tm">{{ b.unlock_label }} <b><dw-countdown class="dw-num" data-end="{{ iso }}">--:--:--</dw-countdown></b></div>
+              {%- endif -%}
+              {%- if b.text != blank %}<p>{{ b.text }}</p>{% endif -%}
+            </div>
+          </article>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</dw-deals>
+
+{% schema %}
+{
+  "name": "Diwali: Patakha deals",
+  "tag": "section",
+  "class": "dw-section",
+  "max_blocks": 8,
+  "settings": [
+    { "type": "text", "id": "anchor", "label": "Anchor ID", "default": "deals" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Patakha <em>Deals</em>", "info": "Italic text is shown in the accent colour" },
+    { "type": "text", "id": "sub", "label": "Subheading", "default": "Limited stock. Once it's gone, it's gone." },
+    { "type": "checkbox", "id": "show_lights", "label": "Show string lights", "default": true },
+    { "type": "text", "id": "tz", "label": "Timezone of deal times", "default": "+05:30", "info": "UTC offset used for every end time below, e.g. +05:30 for IST" },
+    { "type": "select", "id": "ended", "label": "When a deal ends", "default": "show",
+      "options": [ { "value": "show", "label": "Keep it, greyed out" }, { "value": "hide", "label": "Hide it (on next page load)" } ] },
+
+    { "type": "header", "content": "Deal cards" },
+    { "type": "text", "id": "ends_label", "label": "Timer label", "default": "Ends in" },
+    { "type": "range", "id": "low_stock", "label": "Show “Only X left” at or below", "min": 1, "max": 500, "step": 1, "default": 200 },
+    { "type": "text", "id": "left_label", "label": "Stock label", "default": "Only {n} left" },
+    { "type": "select", "id": "button", "label": "Button action", "default": "cart",
+      "options": [ { "value": "cart", "label": "Add to cart" }, { "value": "buy", "label": "Buy now (GoKwik)" } ] },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Grab deal" },
+    { "type": "text", "id": "sold_out_label", "label": "Sold out label", "default": "Sold out" },
+    { "type": "text", "id": "ended_label", "label": "Ended label", "default": "Deal ended" },
+    { "type": "text", "id": "toast", "label": "Added message", "default": "Deal added to cart" },
+
+    { "type": "header", "content": "Free gift banner" },
+    { "type": "checkbox", "id": "fg_show", "label": "Show banner", "default": true },
+    { "type": "inline_richtext", "id": "fg_title", "label": "Title", "default": "Free gift worth <em>₹499</em> available" },
+    { "type": "inline_richtext", "id": "fg_text", "label": "Text", "default": "Added free with every Patakha deal today · <strong>Selling out fast</strong>" },
+    { "type": "text", "id": "fg_left", "label": "Gifts left", "default": "132" },
+    { "type": "text", "id": "fg_total", "label": "Gifts total", "default": "500", "info": "Leave blank to hide the progress bar" },
+    { "type": "text", "id": "fg_counter", "label": "Counter text", "default": "{left} of {total} gifts left" },
+    { "type": "product", "id": "gift_product", "label": "Free gift product (optional)", "info": "Added alongside every deal with the _free_gift property. Make it free with an automatic discount." },
+    { "type": "text", "id": "gift_prop", "label": "_free_gift property value", "default": "Patakha deal" },
+
+    { "type": "header", "content": "Colours & spacing" },
+    { "type": "color", "id": "c_bg", "label": "Background", "default": "#281a1b" },
+    { "type": "color", "id": "c_acc", "label": "Accent", "default": "#e8913c" },
+    { "type": "color", "id": "c_acc2", "label": "Accent light", "default": "#f5b04f" },
+    { "type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 40 },
+    { "type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 30 },
+    { "type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 56 },
+    { "type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 48 }
+  ],
+  "blocks": [
+    {
+      "type": "deal",
+      "name": "Deal",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Product" },
+        { "type": "text", "id": "label", "label": "Eyebrow", "default": "Deal {n} · live", "info": "{n} = deal number" },
+        { "type": "text", "id": "title", "label": "Title override" },
+        { "type": "image_picker", "id": "image", "label": "Image override" },
+        { "type": "text", "id": "ends", "label": "Ends at", "default": "2026-10-31 23:59", "info": "YYYY-MM-DD HH:MM in the section timezone. Blank = no timer." },
+        { "type": "text", "id": "left", "label": "Units left override", "info": "Blank = live inventory" },
+        { "type": "text", "id": "total", "label": "Units total (for the bar)", "default": "150" }
+      ]
+    },
+    {
+      "type": "next",
+      "name": "Next drop teaser",
+      "limit": 2,
+      "settings": [
+        { "type": "text", "id": "label", "label": "Eyebrow", "default": "Next drop" },
+        { "type": "text", "id": "title", "label": "Title", "default": "Mystery Patakha" },
+        { "type": "text", "id": "text", "label": "Text", "default": "Under ₹399. Check back so you don't miss it." },
+        { "type": "image_picker", "id": "image", "label": "Teaser image (shown blurred)" },
+        { "type": "text", "id": "ends", "label": "Unlocks at", "default": "2026-10-20 18:00", "info": "YYYY-MM-DD HH:MM" },
+        { "type": "text", "id": "unlock_label", "label": "Timer label", "default": "Unlocks in" },
+        { "type": "text", "id": "live_label", "label": "Text once unlocked", "default": "Live now" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Diwali: Patakha deals",
+      "blocks": [ { "type": "deal" }, { "type": "deal" }, { "type": "deal" }, { "type": "next" } ]
+    }
+  ]
+}
+{% endschema %}

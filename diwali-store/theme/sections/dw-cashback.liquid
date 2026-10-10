@@ -1,0 +1,96 @@
+{{ 'diwali-store.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'diwali-store.js' | asset_url }}" type="module"></script>
+{%- liquid
+  assign s = section.settings
+  assign p = s.product
+  assign v = p.selected_or_first_available_variant
+  assign back = v.price
+  if s.cashback_pct != 100
+    assign back = v.price | times: s.cashback_pct | divided_by: 100
+  endif
+  assign back_money = back | money_without_trailing_zeros
+  assign back_html = '<b class="dw-num">' | append: back_money | append: '</b>'
+  assign big = s.big | strip
+  assign big_num = big | remove: '%'
+-%}
+<section
+  class="dw dw-cash"
+  id="{{ s.anchor | default: section.id | handleize }}"
+  style="--dw-sec-bg:linear-gradient(180deg,{{ s.c_bg1 }},{{ s.c_bg2 }});--dw-esp:{{ s.c_text }};--dw-acc:{{ s.c_acc }};--dw-pt:{{ s.pt }}px;--dw-pb:{{ s.pb }}px;--dw-pt-d:{{ s.pt_d }}px;--dw-pb-d:{{ s.pb_d }}px"
+>
+  <div class="dw-wrap dw-cash-in">
+    <div>
+      {%- if s.eyebrow != blank %}<span class="dw-eyebrow">{{ s.eyebrow }}</span>{% endif -%}
+      <h2>{{ s.heading }}{% if s.heading_italic != blank %} <i>{{ s.heading_italic }}</i>{% endif %}</h2>
+      {%- if big != blank -%}
+        <div class="dw-big dw-num" aria-label="{{ big }} {{ s.big_small | strip_html | escape }}">{{ big_num }}{% if big contains '%' %}<sup>%</sup>{% endif %}{% if s.big_small != blank %}<small>{{ s.big_small }}</small>{% endif %}</div>
+      {%- endif -%}
+    </div>
+    <div>
+      {%- if p != blank -%}
+        <div class="dw-bundle">
+          <a class="dw-media" href="{{ p.url }}" aria-label="{{ p.title | escape }}">
+            {%- assign img = s.image | default: p.featured_media -%}
+            {%- if img %}{{ img | image_url: width: 360 | image_tag: loading: 'lazy', widths: '180,270,360', sizes: '(min-width: 760px) 160px, 104px', alt: p.title }}{% endif -%}
+          </a>
+          <div>
+            {%- if s.badge != blank -%}
+              <span class="dw-free"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{ s.badge }}</span>
+            {%- endif -%}
+            <h3>{{ s.title | default: p.title }}</h3>
+            <div class="dw-pr dw-num"><b>{{ v.price | money_without_trailing_zeros }}</b>{% if v.compare_at_price > v.price %}<s>{{ v.compare_at_price | money_without_trailing_zeros }}</s>{% endif %}</div>
+            {%- if s.cashback_text != blank %}<p class="dw-cbk">{{ s.cashback_text | replace: '{amount}', back_html }}</p>{% endif -%}
+            {%- if s.action == 'link' or p.has_only_default_variant == false -%}
+              <a class="dw-btn dw-btn--acc" href="{{ p.url }}">{{ s.button_label }}</a>
+            {%- elsif v.available -%}
+              {%- capture items -%}[{"id":{{ v.id }},"quantity":1{% if s.prop_value != blank %},"properties":{"_cashback":{{ s.prop_value | json }}}{% endif %}}]{%- endcapture -%}
+              <button type="button" class="dw-btn dw-btn--acc" data-dw-add="{{ items | escape }}"{% if s.action == 'buy' %} data-dw-buy="true"{% endif %} data-dw-toast="{{ s.toast | escape }}">{{ s.button_label }}</button>
+            {%- else -%}
+              <button type="button" class="dw-btn dw-btn--acc" disabled>Sold out</button>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endif -%}
+      {%- if s.fine != blank %}<div class="dw-note">{{ s.fine }}</div>{% endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Diwali: Cashback bundle",
+  "tag": "div",
+  "class": "dw-section",
+  "settings": [
+    { "type": "text", "id": "anchor", "label": "Anchor ID", "default": "cashback" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "100% cashback" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Buy the bundle." },
+    { "type": "text", "id": "heading_italic", "label": "Heading italic line", "default": "Get every rupee back." },
+    { "type": "text", "id": "big", "label": "Big number", "default": "100%", "info": "Add % to show the percent sign" },
+    { "type": "inline_richtext", "id": "big_small", "label": "Text beside the number", "default": "cash<br>back" },
+    { "type": "header", "content": "Bundle" },
+    { "type": "product", "id": "product", "label": "Bundle product" },
+    { "type": "image_picker", "id": "image", "label": "Image override" },
+    { "type": "text", "id": "title", "label": "Title override", "default": "The Diwali Mega Bundle" },
+    { "type": "text", "id": "badge", "label": "Badge", "default": "Get it for free" },
+    { "type": "range", "id": "cashback_pct", "label": "Cashback % of price", "min": 5, "max": 100, "step": 5, "unit": "%", "default": 100 },
+    { "type": "inline_richtext", "id": "cashback_text", "label": "Cashback text", "default": "Get {amount} back as Man Cash", "info": "{amount} = price × cashback %" },
+    { "type": "select", "id": "action", "label": "Button action", "default": "cart",
+      "options": [ { "value": "cart", "label": "Add to cart" }, { "value": "buy", "label": "Buy now (GoKwik)" }, { "value": "link", "label": "Open product page" } ] },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Buy now" },
+    { "type": "text", "id": "prop_value", "label": "_cashback line property (optional)", "default": "100% Man Cash", "info": "Lets your cashback tool / ops identify the order line" },
+    { "type": "text", "id": "toast", "label": "Added message", "default": "Mega Bundle added · cashback after delivery" },
+    { "type": "richtext", "id": "fine", "label": "Fine print", "default": "<p>T&C apply. One bundle per customer.</p>" },
+    { "type": "header", "content": "Colours & spacing" },
+    { "type": "color", "id": "c_bg1", "label": "Background top", "default": "#fbf4e8" },
+    { "type": "color", "id": "c_bg2", "label": "Background bottom", "default": "#fdf6e7" },
+    { "type": "color", "id": "c_text", "label": "Heading colour", "default": "#281a1b" },
+    { "type": "color", "id": "c_acc", "label": "Accent", "default": "#e8913c" },
+    { "type": "range", "id": "pt", "label": "Top padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 30 },
+    { "type": "range", "id": "pb", "label": "Bottom padding (mobile)", "min": 0, "max": 120, "step": 2, "unit": "px", "default": 30 },
+    { "type": "range", "id": "pt_d", "label": "Top padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 48 },
+    { "type": "range", "id": "pb_d", "label": "Bottom padding (desktop)", "min": 0, "max": 160, "step": 2, "unit": "px", "default": 48 }
+  ],
+  "presets": [ { "name": "Diwali: Cashback bundle" } ]
+}
+{% endschema %}

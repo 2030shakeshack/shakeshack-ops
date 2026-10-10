@@ -1,0 +1,28 @@
+name = "dw-spin"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# wrangler kv namespace create SPINS   -> paste the id below
+[[kv_namespaces]]
+binding = "SPINS"
+id = "REPLACE_WITH_KV_ID"
+
+[vars]
+SHOP = "learning-store-z5ckhned.myshopify.com"
+ALLOWED_ORIGINS = "https://learning-store-z5ckhned.myshopify.com"
+CODE_PREFIX = "DIWALI"
+VALID_DAYS = "15"
+END_DATE = "2026-11-10T23:59:59+05:30"
+IP_DAILY_LIMIT = "5"
+API_VERSION = "2026-07"
+# prize ids must match the "Prize ID" of each slice in the Spin the wheel section
+PRIZES = '''[
+  { "id": "off10",    "label": "10% OFF",       "type": "percentage",    "value": 10,  "weight": 30 },
+  { "id": "freeship", "label": "FREE SHIPPING", "type": "free_shipping",                "weight": 25 },
+  { "id": "flat100",  "label": "₹100 OFF",      "type": "fixed",         "value": 100, "weight": 20, "min_subtotal": 699 },
+  { "id": "off15",    "label": "15% OFF",       "type": "percentage",    "value": 15,  "weight": 12 },
+  { "id": "flat150",  "label": "₹150 OFF",      "type": "fixed",         "value": 150, "weight": 8,  "min_subtotal": 999 },
+  { "id": "off20",    "label": "20% OFF",       "type": "percentage",    "value": 20,  "weight": 5,  "min_subtotal": 1499 }
+]'''
+
+# secret, never commit:  wrangler secret put SHOPIFY_ADMIN_TOKEN
